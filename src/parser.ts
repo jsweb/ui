@@ -36,11 +36,12 @@ export function parseNode(node: Node, context: Context) {
 
     // 1. Check for scope
     let currentContext = context
-    const scopeAttr = el.getAttribute('ui:scope')
+    const scopeAttr = el.getAttribute('ui:scope') || el.getAttribute(':scope')
     if (scopeAttr) {
       const scopeData = evaluate(scopeAttr, context) || {}
       currentContext = createContext(scopeData, context)
       el.removeAttribute('ui:scope')
+      el.removeAttribute(':scope')
     }
 
     // 2. Check for ui:for (must be processed before children and other directives on same element)
@@ -66,7 +67,8 @@ export function parseNode(node: Node, context: Context) {
     for (const attr of attrs) {
       const { name, value } = attr
       const isText = ['ui:text', ':text'].includes(name)
-      const isBind = name.startsWith('ui:') || name.startsWith(':')
+      const isTwoWayBind = ['ui:bind', ':bind'].includes(name)
+      const isAttrBind = name.startsWith('ui:') || name.startsWith(':') 
       const isEvent = name.startsWith('ui@') || name.startsWith('@')
 
       if (isText) {
@@ -75,7 +77,10 @@ export function parseNode(node: Node, context: Context) {
           const val = evaluate(value, currentContext)
           el.textContent = val !== undefined && val !== null ? String(val) : ''
         })
-      } else if (isBind) {
+      } else if (isTwoWayBind) {
+        el.removeAttribute(name)
+        processTwoWayBinding(el, value, currentContext)
+      } else if (isAttrBind) {
         const boundAttr = name.split(':').pop()! 
         el.removeAttribute(name)
         effect(() => {
@@ -225,6 +230,37 @@ export function createComponent(
   if (el) {
     parseNode(el, rootContext)
   } else {
-    console.warn(`[jsweb/ui] App root element not found: ${selectorOrElement}`)
+    console.warn(`[jsweb/ui] Element not found: ${selectorOrElement}`)
   }
+}
+
+function processTwoWayBinding(el: HTMLElement, expr: string, context: Context) {
+  const isCheckbox = el instanceof HTMLInputElement && el.type === 'checkbox'
+  const isRadio = el instanceof HTMLInputElement && el.type === 'radio'
+  
+  // 1. Reactive state to DOM
+  effect(() => {
+    const val = evaluate(expr, context)
+    if (isCheckbox) {
+      const target = el as HTMLInputElement
+      target.checked = !!val
+    } else if (isRadio) {
+      const target = el as HTMLInputElement
+      target.checked = target.value === String(val)
+    } else {
+      const target = el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      target.value = val == null ? '' : String(val)
+    }
+  })
+
+  // 2. DOM to Reactive state
+  const isChange = isCheckbox || isRadio || el instanceof HTMLSelectElement
+  const eventName = isChange ? 'change' : 'input'
+  el.addEventListener(eventName, ($event) => {
+    if (isCheckbox) {
+      evaluateEvent(`${expr} = $event.target.checked`, context, $event)
+    } else {
+      evaluateEvent(`${expr} = $event.target.value`, context, $event)
+    }
+  })
 }
