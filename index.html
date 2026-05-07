@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JS Web UI Test</title>
+    <script type="module">
+      import { createComponent } from '/src/index.ts'
+
+      const scope = {
+        count: 0,
+        inc: 'Incremento',
+        dec: 'Decremento',
+        items: ['A', 'B', 'C'],
+        
+        get computedItems() {
+          return this.items.map((value, index) => {
+            return { value, index }
+          })
+        },
+
+        increment() {
+          this.count++
+        },
+        decrement() {
+          this.count--
+        },
+        zero() {
+          this.count = 0
+        },
+        addItem() {
+          const value = Date.now()
+          this.items.push(value)
+        },
+        removeItem() {
+          this.items.pop()
+        }
+      }
+
+      createComponent('body', { scope })
+    </script>
+  </head>
+  <body>
+    <div ui:scope="scope">
+      <h1>JS Web UI</h1>
+      <p>Contador: <span :text="count"></span></p>
+      <button :text="inc" @click="increment()">+</button>
+      <button :text="dec" @click="decrement()">-</button>
+
+      <div style="margin-top: 20px">
+        <button @click="zero()" :disabled="!count">Zerar</button>
+      </div>
+
+      <div
+        :if="count > 0"
+        style="margin-top: 20px; padding: 10px; border: 1px solid green"
+      >
+        O contador é maior que zero!
+      </div>
+
+      <div style="margin-top: 20px">
+        <h3>Lista:</h3>
+        <button @click="addItem()">Adicionar Item</button>
+        <button @click="removeItem()">Remover Item</button>
+        <ul>
+          <li :for="item of computedItems">
+            <span :text="item.index"></span> 
+            <input type="text" :value="item.value" />
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
