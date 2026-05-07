@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JS Web UI Test</title>
     <script type="module">
-      import { createComponent, reactive } from '/src/index.ts'
+      import { createScope, reactive } from '/src/index.ts'
 
       const scope = reactive({
         count: 0,
@@ -44,7 +44,7 @@
 
       window.scope = scope
 
-      createComponent('body', { scope })
+      createScope('body', { scope })
     </script>
   </head>
   <body>

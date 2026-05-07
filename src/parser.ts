@@ -53,32 +53,34 @@ export function parseNode(node: Node, context: Context) {
   if (node.nodeType !== Node.ELEMENT_NODE) return
 
   const el = node as HTMLElement
-  const currentContext = processScope(el, context)
+  const scope = processScope(el, context)
 
-  const forAttr = getDirectiveValue(el, ['ui:for', ':for'])
-  if (forAttr) {
-    removeDirectiveAttributes(el, ['ui:for', ':for'])
-    processFor(el, forAttr, currentContext)
+  const forAttrs = ['ui:for', ':for']
+  const forDirective = getDirectiveValue(el, forAttrs)
+  if (forDirective) {
+    removeDirectiveAttributes(el, forAttrs)
+    processFor(el, forDirective, scope)
     return
   }
 
-  const ifAttr = getDirectiveValue(el, ['ui:if', ':if'])
-  if (ifAttr) {
-    removeDirectiveAttributes(el, ['ui:if', ':if'])
-    processIf(el, ifAttr, currentContext)
+  const ifAttrs = ['ui:if', ':if']
+  const ifDirective = getDirectiveValue(el, ifAttrs)
+  if (ifDirective) {
+    removeDirectiveAttributes(el, ifAttrs)
+    processIf(el, ifDirective, scope)
   }
 
-  processAttributes(el, currentContext)
+  processAttributes(el, scope)
 
   const children = Array.from(el.childNodes)
   for (const child of children) {
-    parseNode(child, currentContext)
+    parseNode(child, scope)
   }
 }
 
-export function createComponent(
+export function createScope(
   selectorOrElement: string | HTMLElement,
-  rootContext: Context = {},
+  context: Context = {},
 ) {
   const el =
     typeof selectorOrElement === 'string'
@@ -86,7 +88,7 @@ export function createComponent(
       : selectorOrElement
 
   if (el) {
-    parseNode(el, rootContext)
+    parseNode(el, context)
   } else {
     console.warn('[jsweb/ui] Element not found:', selectorOrElement)
   }
@@ -134,7 +136,7 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
   const [, itemName, listName] = match
 
   const keyAttr = ['ui:key', ':key']
-  const keyExpr = getDirectiveValue(el, keyAttr)
+  const keyDirective = getDirectiveValue(el, keyAttr)
   removeDirectiveAttributes(el, keyAttr)
 
   const uuid = crypto.randomUUID()
@@ -168,9 +170,9 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
       const scope = { [itemName]: item, $index: index }
       let key: any = index
 
-      if (keyExpr) {
+      if (keyDirective) {
         const tempContext = createContext(scope, context)
-        key = evaluate(keyExpr, tempContext)
+        key = evaluate(keyDirective, tempContext)
       }
 
       let node = oldNodesByKey.get(key)
