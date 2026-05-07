@@ -36,7 +36,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "format": "prettier --write .",
-    "test": "echo 'test'"
+    "test": "echo 'test'",
+    "postversion": "git push && git push --tags"
   },
   "devDependencies": {
     "prettier": "^3.8.3",
