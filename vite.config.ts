@@ -4,6 +4,7 @@ import dts from 'vite-plugin-dts'
 export default defineConfig({
   build: {
     lib: {
+      name: '@jsweb/ui',
       formats: ['es', 'umd'],
       entry: './src/index.ts',
       fileName: (format: string) => `ui.${format}.js`,
