@@ -1,14 +1,57 @@
-let activeEffect: (() => void) | null = null
-const targetMap = new WeakMap<object, Map<string | symbol, Set<() => void>>>()
+let activeEffect: symbol | null = null
+const targetMap = new WeakMap<
+  object,
+  Map<string | symbol, Set<ReactiveEffect>>
+>()
+const proxyMap = new WeakMap<object, any>()
+const effectMap = new WeakMap<symbol, ReactiveEffect>()
 
-export function effect(fn: () => void) {
-  const effectFn = () => {
-    // cleanup old deps could be added here
-    activeEffect = effectFn
-    fn()
-    activeEffect = null
+export class ReactiveEffect {
+  active = true
+  deps: Set<Set<ReactiveEffect>> = new Set()
+
+  constructor(public fn: () => void) {}
+
+  run() {
+    if (!this.active) return this.fn()
+
+    this.cleanup()
+
+    activeEffect = Symbol()
+    effectMap.set(activeEffect, this)
+
+    try {
+      return this.fn()
+    } finally {
+      effectMap.delete(activeEffect)
+      activeEffect = null
+    }
   }
-  effectFn()
+
+  stop() {
+    if (this.active) {
+      this.cleanup()
+      this.active = false
+    }
+  }
+
+  cleanup() {
+    this.deps.forEach((dep) => dep.delete(this))
+    this.deps.clear()
+  }
+
+  effect() {
+    return {
+      run: () => this.run(),
+      stop: () => this.stop(),
+    }
+  }
+}
+
+export function effect(fn: () => void): any {
+  const ref = new ReactiveEffect(fn)
+  ref.run()
+  return ref.effect()
 }
 
 export function track(target: object, key: string | symbol) {
@@ -18,31 +61,44 @@ export function track(target: object, key: string | symbol) {
       depsMap = new Map()
       targetMap.set(target, depsMap)
     }
+
     let dep = depsMap.get(key)
     if (!dep) {
       dep = new Set()
       depsMap.set(key, dep)
     }
-    dep.add(activeEffect)
+
+    const active = effectMap.get(activeEffect)
+    if (active) {
+      dep.add(active)
+      active.deps.add(dep)
+    }
   }
 }
 
 export function trigger(target: object, key: string | symbol) {
   const depsMap = targetMap.get(target)
   if (!depsMap) return
+
   const dep = depsMap.get(key)
   if (dep) {
-    dep.forEach((effectFn) => effectFn())
+    const effects = new Set(dep)
+    effects.forEach((effect) => effect.run())
   }
 }
 
 export function reactive<T extends object>(target: T): T {
-  if (typeof target !== 'object' || target === null) return target
-  if ((target as any).__isReactive) return target
+  const notObject = typeof target !== 'object' || target === null
+  if (notObject) return target
 
-  return new Proxy(target, {
+  const isReactive = Object.hasOwn(target, '_isReactive')
+  if (isReactive) return target
+
+  if (proxyMap.has(target)) return proxyMap.get(target)
+
+  const proxy = new Proxy(target, {
     get(obj, key, receiver) {
-      if (key === '__isReactive') return true
+      if (key === '_isReactive') return true
       track(obj, key)
       const res = Reflect.get(obj, key, receiver)
       // deep reactivity
@@ -54,9 +110,10 @@ export function reactive<T extends object>(target: T): T {
     set(obj, key, value, receiver) {
       const isArray = Array.isArray(obj)
       const oldValue = Reflect.get(obj, key, receiver)
-      const hadKey = isArray && String(Number(key)) === key 
-        ? Number(key) < obj.length 
-        : Object.prototype.hasOwnProperty.call(obj, key)
+      const hadKey =
+        isArray && String(Number(key)) === key
+          ? Number(key) < obj.length
+          : Object.hasOwn(obj, key)
 
       const result = Reflect.set(obj, key, value, receiver)
 
@@ -68,8 +125,11 @@ export function reactive<T extends object>(target: T): T {
       } else if (oldValue !== value) {
         trigger(obj, key)
       }
-      
+
       return result
     },
   })
+
+  proxyMap.set(target, proxy)
+  return proxy
 }

@@ -3,155 +3,145 @@ import { evaluate, evaluateEvent } from './evaluator'
 
 export type Context = Record<string, any>
 
-export function createContext(scopeData: any, parentContext: Context | null = null): Context {
-  const reactiveScope = scopeData.__isReactive ? scopeData : reactive(scopeData)
-  
+interface BoundNode extends Node {
+  __effects?: Array<() => void>
+}
+
+export function cleanupTree(node: Node) {
+  const bNode = node as BoundNode
+  if (bNode.__effects) {
+    bNode.__effects.forEach((stop) => stop())
+    bNode.__effects = []
+  }
+  const children = Array.from(node.childNodes)
+  for (const child of children) {
+    cleanupTree(child)
+  }
+}
+
+export function createContext(
+  scope: any,
+  context: Context | null = null,
+): Context {
+  const reactiveScope = scope._isReactive ? scope : reactive(scope)
+
   return new Proxy(reactiveScope, {
     get(target, prop) {
-      if (prop === '__isContext') return true
+      if (prop === '_isContext') return true
       if (prop in target) return Reflect.get(target, prop, target)
-      if (parentContext && prop in parentContext) {
-        return Reflect.get(parentContext, prop, parentContext)
+      if (context && prop in context) {
+        return Reflect.get(context, prop, context)
       }
       return Reflect.get(target, prop, target)
     },
     set(target, prop, value) {
       if (prop in target) return Reflect.set(target, prop, value, target)
-      if (parentContext && prop in parentContext) {
-        return Reflect.set(parentContext, prop, value, parentContext)
+      if (context && prop in context) {
+        return Reflect.set(context, prop, value, context)
       }
       return Reflect.set(target, prop, value, target)
     },
     has(target, prop) {
       if (prop in target) return true
-      if (parentContext && prop in parentContext) return true
+      if (context && prop in context) return true
       return false
-    }
+    },
   })
 }
 
 export function parseNode(node: Node, context: Context) {
-  if (node.nodeType === Node.ELEMENT_NODE) {
-    const el = node as HTMLElement
+  if (node.nodeType !== Node.ELEMENT_NODE) return
 
-    // 1. Check for scope
-    let currentContext = context
-    const scopeAttr = el.getAttribute('ui:scope') || el.getAttribute(':scope')
-    if (scopeAttr) {
-      const scopeData = evaluate(scopeAttr, context) || {}
-      currentContext = createContext(scopeData, context)
-      el.removeAttribute('ui:scope')
-      el.removeAttribute(':scope')
-    }
+  const el = node as HTMLElement
+  const currentContext = processScope(el, context)
 
-    // 2. Check for ui:for (must be processed before children and other directives on same element)
-    const forAttr = el.getAttribute('ui:for') || el.getAttribute(':for')
-    if (forAttr) {
-      el.removeAttribute('ui:for')
-      el.removeAttribute(':for')
-      processFor(el, forAttr, currentContext)
-      return // Stop processing this node further, processFor handles clones
-    }
+  const forAttr = getDirectiveValue(el, ['ui:for', ':for'])
+  if (forAttr) {
+    removeDirectiveAttributes(el, ['ui:for', ':for'])
+    processFor(el, forAttr, currentContext)
+    return
+  }
 
-    // 3. Check for ui:if
-    const ifAttr = el.getAttribute('ui:if') || el.getAttribute(':if')
-    if (ifAttr) {
-      el.removeAttribute('ui:if')
-      el.removeAttribute(':if')
-      processIf(el, ifAttr, currentContext)
-      // We continue processing children because the element might be shown
-    }
+  const ifAttr = getDirectiveValue(el, ['ui:if', ':if'])
+  if (ifAttr) {
+    removeDirectiveAttributes(el, ['ui:if', ':if'])
+    processIf(el, ifAttr, currentContext)
+  }
 
-    // 4. Other directives
-    const attrs = Array.from(el.attributes)
-    for (const attr of attrs) {
-      const { name, value } = attr
-      const isText = ['ui:text', ':text'].includes(name)
-      const isTwoWayBind = ['ui:bind', ':bind'].includes(name)
-      const isAttrBind = name.startsWith('ui:') || name.startsWith(':') 
-      const isEvent = name.startsWith('ui@') || name.startsWith('@')
+  processAttributes(el, currentContext)
 
-      if (isText) {
-        el.removeAttribute(name)
-        effect(() => {
-          const val = evaluate(value, currentContext)
-          el.textContent = val !== undefined && val !== null ? String(val) : ''
-        })
-      } else if (isTwoWayBind) {
-        el.removeAttribute(name)
-        processTwoWayBinding(el, value, currentContext)
-      } else if (isAttrBind) {
-        const boundAttr = name.split(':').pop()! 
-        el.removeAttribute(name)
-        effect(() => {
-          const val = evaluate(value, currentContext)
-          if (val === null || val === undefined || val === false) {
-            el.removeAttribute(boundAttr)
-          } else if (val === true) {
-            el.setAttribute(boundAttr, '')
-          } else {
-            el.setAttribute(boundAttr, String(val))
-          }
-        })
-      } else if (isEvent) {
-        const eventName = name.split('@').pop()!
-        el.removeAttribute(name)
-        el.addEventListener(eventName, ($event) => {
-          evaluateEvent(value, currentContext, $event)
-        })
-      }
-    }
-
-    // Process children
-    // Need to convert to array because childNodes might mutate if elements are added/removed
-    const children = Array.from(el.childNodes)
-    for (const child of children) {
-      parseNode(child, currentContext)
-    }
+  const children = Array.from(el.childNodes)
+  for (const child of children) {
+    parseNode(child, currentContext)
   }
 }
 
-function processIf(el: HTMLElement, expr: string, context: Context) {
-  const parent = el.parentNode
-  if (!parent) return
+export function createComponent(
+  selectorOrElement: string | HTMLElement,
+  rootContext: Context = {},
+) {
+  const el =
+    typeof selectorOrElement === 'string'
+      ? document.querySelector(selectorOrElement)
+      : selectorOrElement
 
-  const uuid = crypto.randomUUID()
-  const comment = document.createComment(` ui:if ${uuid} `)
-  parent.insertBefore(comment, el)
+  if (el) {
+    parseNode(el, rootContext)
+  } else {
+    console.warn('[jsweb/ui] Element not found:', selectorOrElement)
+  }
+}
 
-  effect(() => {
-    const val = evaluate(expr, context)
-    if (val) {
-      if (!el.parentNode) {
-        comment.parentNode?.insertBefore(el, comment.nextSibling)
-      }
-    } else {
-      if (el.parentNode) {
-        el.parentNode.removeChild(el)
-      }
-    }
-  })
+function bindEffect(node: Node, fn: () => void) {
+  const e = effect(fn)
+  const bNode = node as BoundNode
+  bNode.__effects ??= []
+  bNode.__effects.push(e.stop)
+}
+
+function getDirectiveValue(el: HTMLElement, names: string[]) {
+  for (const name of names) {
+    const value = el.getAttribute(name)
+    if (value !== null) return value
+  }
+  return null
+}
+
+function removeDirectiveAttributes(el: HTMLElement, names: string[]) {
+  for (const name of names) {
+    el.removeAttribute(name)
+  }
+}
+
+function processScope(el: HTMLElement, context: Context) {
+  const attrs = ['ui:scope', ':scope']
+  const directive = getDirectiveValue(el, attrs)
+  if (!directive) return context
+
+  const scope = evaluate(directive, context) || {}
+  removeDirectiveAttributes(el, attrs)
+  return createContext(scope, context)
 }
 
 function processFor(el: HTMLElement, expr: string, context: Context) {
   const parent = el.parentNode
   if (!parent) return
-  
-  const match = expr.match(/^\s*(.+)\s+(?:in|of)\s+(.+)\s*$/)
+
+  const match = /^\s*(.+)\s+(?:in|of)\s+(.+)\s*$/.exec(expr)
   if (!match) {
     console.warn(`[jsweb/ui] Invalid ui:for expression: ${expr}`)
     return
   }
   const [, itemName, listName] = match
-  
+
   const keyExpr = el.getAttribute('ui:key') || el.getAttribute(':key')
   el.removeAttribute('ui:key')
   el.removeAttribute(':key')
-  
+
   const uuid = crypto.randomUUID()
   const comment = document.createComment(` ui:for ${uuid} `)
-  parent.replaceChild(comment, el)
-  
+  el.replaceWith(comment)
+
   type RenderedNode = {
     key: any
     el: HTMLElement
@@ -159,18 +149,21 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
   }
   let renderedNodes: RenderedNode[] = []
 
-  effect(() => {
+  bindEffect(comment, () => {
     const list = evaluate(listName, context)
 
     if (!Array.isArray(list)) {
-      renderedNodes.forEach(node => node.el.parentNode?.removeChild(node.el))
+      renderedNodes.forEach((node) => {
+        node.el.remove()
+        cleanupTree(node.el)
+      })
       renderedNodes = []
       return
     }
 
     const newNodes: RenderedNode[] = []
     const oldNodesByKey = new Map<any, RenderedNode>()
-    renderedNodes.forEach(node => oldNodesByKey.set(node.key, node))
+    renderedNodes.forEach((node) => oldNodesByKey.set(node.key, node))
 
     list.forEach((item, index) => {
       const scope = { [itemName]: item, $index: index }
@@ -195,13 +188,14 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
         parseNode(clone, localContext)
         node = { key, el: clone, scope: reactiveScope }
       }
-      
+
       newNodes.push(node)
     })
 
     // Remove un-reused nodes
-    oldNodesByKey.forEach(node => {
-      node.el.parentNode?.removeChild(node.el)
+    oldNodesByKey.forEach((node) => {
+      node.el.remove()
+      cleanupTree(node.el)
     })
 
     // Reorder and insert new DOM nodes
@@ -218,37 +212,74 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
   })
 }
 
-export function createComponent(
-  selectorOrElement: string | HTMLElement,
-  rootContext: Context = {},
-) {
-  const el =
-    typeof selectorOrElement === 'string'
-      ? document.querySelector(selectorOrElement)
-      : selectorOrElement
+function processIf(el: HTMLElement, expr: string, context: Context) {
+  const parent = el.parentNode
+  if (!parent) return
 
-  if (el) {
-    parseNode(el, rootContext)
-  } else {
-    console.warn(`[jsweb/ui] Element not found: ${selectorOrElement}`)
+  const uuid = crypto.randomUUID()
+  const comment = document.createComment(` ui:if ${uuid} `)
+  el.before(comment)
+
+  bindEffect(comment, () => {
+    const val = evaluate(expr, context)
+    if (val) {
+      if (!el.parentNode) {
+        comment.parentNode?.insertBefore(el, comment.nextSibling)
+      }
+    } else if (el.parentNode) {
+      el.remove()
+    }
+  })
+}
+
+function processAttributes(el: HTMLElement, context: Context) {
+  const attrs = Array.from(el.attributes)
+
+  for (const attr of attrs) {
+    const { name, value } = attr
+    const isText = ['ui:text', ':text'].includes(name)
+    const isTwoWayBind = ['ui:bind', ':bind'].includes(name)
+    const isAttrBind = name.startsWith('ui:') || name.startsWith(':')
+    const isEvent = name.startsWith('ui@') || name.startsWith('@')
+
+    if (isText) {
+      processTextBinding(el, value, context)
+    } else if (isTwoWayBind) {
+      processTwoWayBinding(el, value, context)
+    } else if (isAttrBind) {
+      const bound = name.split(':').pop()!
+      processAttrBinding(el, bound, value, context)
+    } else if (isEvent) {
+      processEventBinding(el, name, value, context)
+    }
+
+    el.removeAttribute(name)
   }
+}
+
+function processTextBinding(el: HTMLElement, expr: string, context: Context) {
+  bindEffect(el, () => {
+    const val = evaluate(expr, context)
+    el.textContent = val !== undefined && val !== null ? String(val) : ''
+  })
 }
 
 function processTwoWayBinding(el: HTMLElement, expr: string, context: Context) {
   const isCheckbox = el instanceof HTMLInputElement && el.type === 'checkbox'
   const isRadio = el instanceof HTMLInputElement && el.type === 'radio'
-  
+
   // 1. Reactive state to DOM
-  effect(() => {
+  bindEffect(el, () => {
     const val = evaluate(expr, context)
     if (isCheckbox) {
-      const target = el as HTMLInputElement
-      target.checked = !!val
+      el.checked = !!val
     } else if (isRadio) {
-      const target = el as HTMLInputElement
-      target.checked = target.value === String(val)
+      el.checked = el.value === String(val)
     } else {
-      const target = el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      const target = el as
+        | HTMLInputElement
+        | HTMLSelectElement
+        | HTMLTextAreaElement
       target.value = val == null ? '' : String(val)
     }
   })
@@ -262,5 +293,41 @@ function processTwoWayBinding(el: HTMLElement, expr: string, context: Context) {
     } else {
       evaluateEvent(`${expr} = $event.target.value`, context, $event)
     }
+  })
+}
+
+function processAttrBinding(
+  el: HTMLElement,
+  attr: string,
+  expr: string,
+  context: Context,
+) {
+  bindEffect(el, () => {
+    const val = evaluate(expr, context)
+    if (val === null || val === undefined || val === false) {
+      el.removeAttribute(attr)
+    } else if (val === true) {
+      el.setAttribute(attr, '')
+    } else {
+      el.setAttribute(attr, String(val))
+    }
+  })
+}
+
+function processEventBinding(
+  el: HTMLElement,
+  evt: string,
+  expr: string,
+  context: Context,
+) {
+  const refs = evt.split('@').pop()!
+  const [name, ...modifiers] = refs.split('.')
+
+  el.addEventListener(name, ($event) => {
+    if (modifiers.includes('prevent')) $event.preventDefault()
+    if (modifiers.includes('stop')) $event.stopPropagation()
+    if (modifiers.includes('self') && $event.target !== el) return
+
+    evaluateEvent(expr, context, $event)
   })
 }
