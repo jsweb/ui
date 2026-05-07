@@ -17,7 +17,7 @@
 
 ### A. Sistema de Reatividade
 
-- **Mecanismo:** Proxy-based. O estado deve ser interceptado para disparar "efeitos" (side-effects) que atualizam o DOM.
+- **Mecanismo:** Proxy-based em conjunto com a classe `ReactiveEffect`. O estado é interceptado para disparar "efeitos" com gerenciamento preciso de dependências, controle de ciclo de vida (`stop`, `cleanup`) e otimizado contra vazamento de memória.
 - **Global State:** Deve ser possível exportar um objeto reativo de um arquivo e importá-lo em múltiplos componentes/contextos, tornando-o um estado compartilhado.
 - **Global Effect:** Deve ser possível criar efeitos globais que reajam a mudanças em qualquer estado compartilhado.
 - **Local State:** Deve ser possível criar estados locais que reajam a mudanças apenas dentro do escopo do componente.
@@ -30,11 +30,12 @@
 
 ### B. Avaliador de Expressões (The Evaluator)
 
-- **Implementação:** Uso de `new Function()`.
-- **Estratégia de Injeção:** Para avaliar strings de atributos (ex: `ui:text="user.name"`), o motor deve:
-  1. Extrair `keys` e `values` do contexto atual.
-  2. Construir a função dinâmica: `new Function(...keys, 'return ' + expression)`.
-  3. Executar passando os valores: `fn(...values)`.
+- **Implementação:** Uso de `new Function()` com `with(this)`.
+- **Estratégia de Execução:** Para avaliar expressões declaradas no HTML de forma encapsulada (sandboxed):
+  1. O motor encapsula o objeto/escopo em um Proxy de Contexto para resolução de dependências.
+  2. Constrói a função dinâmica: `new Function('with(this) { ... }')`.
+  3. Executa a função passando o escopo reativo atrelado ao `this`.
+  4. Para eventos, também expõe a variável nativa `$event`.
 
 ### C. Parser de Template
 
@@ -48,7 +49,8 @@
 | `ui:scope` | Define o objeto de estado para o elemento e seus filhos.          | `<div ui:scope="{ count: 0 }">`   |
 | `ui:text`  | Sincroniza o `textContent` com uma variável.                      | `<span ui:text="count"></span>`   |
 | `:attr`    | Shorthand para bind de atributos HTML nativos.                    | `<button :disabled="count > 10">` |
-| `@event`   | Shorthand para event listeners.                                   | `<button @click="count++">`       |
+| `@event`   | Shorthand para event listeners (com suporte a modificadores).     | `<button @click.prevent="save">`  |
+| `:bind`    | Two-way data binding para inputs, checkboxes, radios e selects.   | `<input :bind="name">`            |
 | `ui:if`    | Adiciona/Remove o elemento do DOM (via Comment Node placeholder). | `<div ui:if="count > 0">`         |
 | `ui:for`   | Renderiza uma lista de elementos a partir de um array.            | `<li ui:for="item in items">`     |
 

@@ -4,14 +4,14 @@ import { evaluate, evaluateEvent } from './evaluator'
 export type Context = Record<string, any>
 
 interface BoundNode extends Node {
-  __effects?: Array<() => void>
+  _effects?: Array<() => void>
 }
 
 export function cleanupTree(node: Node) {
   const bNode = node as BoundNode
-  if (bNode.__effects) {
-    bNode.__effects.forEach((stop) => stop())
-    bNode.__effects = []
+  if (bNode._effects) {
+    bNode._effects.forEach((stop) => stop())
+    bNode._effects = []
   }
   const children = Array.from(node.childNodes)
   for (const child of children) {
@@ -95,8 +95,8 @@ export function createComponent(
 function bindEffect(node: Node, fn: () => void) {
   const e = effect(fn)
   const bNode = node as BoundNode
-  bNode.__effects ??= []
-  bNode.__effects.push(e.stop)
+  bNode._effects ??= []
+  bNode._effects.push(e.stop)
 }
 
 function getDirectiveValue(el: HTMLElement, names: string[]) {
@@ -129,20 +129,19 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
 
   const match = /^\s*(.+)\s+(?:in|of)\s+(.+)\s*$/.exec(expr)
   if (!match) {
-    console.warn(`[jsweb/ui] Invalid ui:for expression: ${expr}`)
-    return
+    return console.warn(`[jsweb/ui] Invalid ui:for expression: ${expr}`)
   }
   const [, itemName, listName] = match
 
-  const keyExpr = el.getAttribute('ui:key') || el.getAttribute(':key')
-  el.removeAttribute('ui:key')
-  el.removeAttribute(':key')
+  const keyAttr = ['ui:key', ':key']
+  const keyExpr = getDirectiveValue(el, keyAttr)
+  removeDirectiveAttributes(el, keyAttr)
 
   const uuid = crypto.randomUUID()
   const comment = document.createComment(` ui:for ${uuid} `)
   el.replaceWith(comment)
 
-  type RenderedNode = {
+  interface RenderedNode {
     key: any
     el: HTMLElement
     scope: any
@@ -323,11 +322,28 @@ function processEventBinding(
   const refs = evt.split('@').pop()!
   const [name, ...modifiers] = refs.split('.')
 
-  el.addEventListener(name, ($event) => {
-    if (modifiers.includes('prevent')) $event.preventDefault()
-    if (modifiers.includes('stop')) $event.stopPropagation()
+  const isOutside = modifiers.includes('outside')
+  const target = isOutside ? document : el
+
+  const handler: EventListener = ($event: Event) => {
+    if (!el.isConnected) return
+
+    const isTargetNode = $event.target instanceof Node
+
+    if (isOutside && isTargetNode && el.contains($event.target)) return
     if (modifiers.includes('self') && $event.target !== el) return
 
+    if (modifiers.includes('prevent')) $event.preventDefault()
+    if (modifiers.includes('stop')) $event.stopPropagation()
+
     evaluateEvent(expr, context, $event)
-  })
+  }
+
+  target.addEventListener(name, handler)
+
+  if (isOutside) {
+    const bNode = el as BoundNode
+    bNode._effects ??= []
+    bNode._effects.push(() => target.removeEventListener(name, handler))
+  }
 }

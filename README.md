@@ -12,6 +12,7 @@ O `@jsweb/ui` é um micro-framework frontend escrito em TypeScript, projetado pa
   - **Module**: Pacote ESM com exports nomeados para suporte a Tree-Shaking.
 - **Contexto Híbrido**: Suporta definição de estado via Objetos Literais (POJOs) ou Classes TypeScript.
 - **Template Engine**: Baseado em atributos customizados no HTML (`ui:*` para diretivas e `ui@*` para eventos, com shorthands `@`, `:`).
+  - Suporte completo a **modificadores de eventos** encadeados (`.prevent`, `.stop`, `.self`, `.outside`).
 
 ## Instalação
 
@@ -36,7 +37,8 @@ O framework utiliza um sistema de atributos customizados para declaratividade no
 | `ui:scope` | Define o objeto de estado para o elemento e seus filhos.             | `<div ui:scope="{ count: 0 }">`   |
 | `ui:text`  | Sincroniza o `textContent` com uma variável.                         | `<span ui:text="count"></span>`   |
 | `:attr`    | Shorthand para bind de atributos HTML nativos (Binding Condicional). | `<button :disabled="count > 10">` |
-| `@event`   | Shorthand para event listeners.                                      | `<button @click="count++">`       |
+| `@event`   | Shorthand para event listeners (suporta modificadores encadeados).   | `<button @click.prevent="save">`  |
+| `:bind`    | Two-way data binding para inputs, checkboxes, radios e selects.      | `<input :bind="name">`            |
 | `ui:if`    | Adiciona/Remove o elemento do DOM (via Comment Node placeholder).    | `<div ui:if="count > 0">`         |
 | `ui:for`   | Renderiza uma lista de elementos a partir de um array.               | `<li ui:for="item in items">`     |
 

@@ -94,7 +94,8 @@ export function reactive<T extends object>(target: T): T {
   const isReactive = Object.hasOwn(target, '_isReactive')
   if (isReactive) return target
 
-  if (proxyMap.has(target)) return proxyMap.get(target)
+  const existingProxy = proxyMap.get(target)
+  if (existingProxy) return existingProxy
 
   const proxy = new Proxy(target, {
     get(obj, key, receiver) {

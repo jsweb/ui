@@ -4,6 +4,7 @@ Este documento serve como contexto histórico de todas as funcionalidades implem
 
 ## 🧠 1. Core de Reatividade (`src/reactivity.ts`)
 Construímos um motor baseado em **Signals** usando `Proxy` para interceptar leituras (`track`) e escritas (`trigger`).
+- **Arquitetura `ReactiveEffect`:** A reatividade é gerenciada pela classe `ReactiveEffect`, permitindo controle refinado sobre o ciclo de vida dos efeitos (`stop`, `cleanup`) e garantindo limpeza eficiente de dependências para evitar vazamentos de memória. Também inclui micro-otimizações no rastreamento do Proxy para evitar buscas redundantes.
 - **Deep Reactivity:** A reatividade funciona recursivamente em objetos profundamente aninhados.
 - **Arrays e Mutabilidade:** Tratamento especial para arrays, onde a adição ou remoção de itens notifica dependências sobre a propriedade `length`, o que garante que loops reajam adequadamente a `.push`, `.pop`, etc.
 - **Transparência:** O usuário final trabalha com dados mutáveis puros sem a necessidade de getters/setters explícitos (ex: `state.count++` em vez de `state.count.value++`).
@@ -21,7 +22,7 @@ Em vez de Virtual DOM, manipulamos o DOM real empacotando atualizações atravé
 - **`:if`:** Renderização condicional. O framework usa "âncoras" (`Comment Nodes`) para substituir dinamicamente o elemento no DOM quando a condição é falsa e restaurá-lo na posição exata quando for verdadeira.
 - **`:for` e Reconciliação:** Renderização de listas utilizando algoritmo de *diffing*. O motor rastreia chaves (`:key` ou fallback para índice) de cada elemento gerado e reutiliza os mesmos nós DOM (`RenderedNode`). Isso traz performance massiva e garante que atributos nativos do navegador (ex: foco de um input) não se percam em mudanças reativas do array.
 - **Atributos Genéricos (`:attr`):** Transformação dinâmica de qualquer atributo. Valores booleanos injetam/removem o atributo (ex: `disabled`).
-- **Eventos (`@event`):** Adição simples de ouvintes a qualquer evento DOM nativo.
+- **Eventos (`@event` e Modificadores):** Adição simples de ouvintes a qualquer evento DOM nativo. Inclui suporte nativo a **modificadores encadeados** com sintaxe de ponto (ex: `@submit.prevent`, `@click.stop`, `@click.self`) para um controle declarativo do comportamento do evento.
 - **Two-way Data Binding (`:bind`):** Suporte total a reatividade bidirecional (Tela <-> Estado) para `input[text]`, `input[checkbox]`, `input[radio]`, `<select>` e `<textarea>`. Sincroniza em tempo real tanto via evento `input` quanto `change`.
 
 ## 📦 4. Build e Bundling (`vite.config.ts`)
@@ -31,6 +32,5 @@ Em vez de Virtual DOM, manipulamos o DOM real empacotando atualizações atravé
 
 ## 🎯 Próximos Passos (Backlog Futuro Sugerido)
 Para outros agentes, aqui estão os próximos passos lógicos de evolução deste framework:
-1. **Modificadores de Evento:** Adicionar suporte a sufixos como `@click.prevent` e `@click.stop`.
-2. **Sintaxe Especial para Classes e Estilos:** Suporte para dicionários lógicos no CSS como `:class="{ 'is-active': active }"`.
-3. **Eventos customizados:** Implementação de um `$emit` para comunicação de um escopo/componente interno para um mais externo.
+1. **Sintaxe Especial para Classes e Estilos:** Suporte para dicionários lógicos no CSS como `:class="{ 'is-active': active }"`.
+2. **Eventos customizados:** Implementação de um `$emit` para comunicação de um escopo/componente interno para um mais externo.
