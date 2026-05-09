@@ -48,7 +48,7 @@ export class ReactiveEffect {
   }
 }
 
-export function effect(fn: () => void): any {
+export function effect(fn: () => void) {
   const ref = new ReactiveEffect(fn)
   ref.run()
   return ref.effect()
@@ -133,4 +133,43 @@ export function reactive<T extends object>(target: T): T {
 
   proxyMap.set(target, proxy)
   return proxy
+}
+
+export function traverse(value: any, seen = new Set()) {
+  if (typeof value !== 'object' || value === null || seen.has(value)) {
+    return value
+  }
+  seen.add(value)
+  for (const key in value) {
+    traverse(value[key], seen)
+  }
+  return value
+}
+
+export function watch(
+  source: any | (() => any),
+  cb: (newValue: any, oldValue: any) => void,
+  options?: { immediate?: boolean },
+) {
+  let oldValue: any
+  let isFirstRun = true
+
+  const getter = source instanceof Function ? source : () => traverse(source)
+
+  const runner = effect(() => {
+    const newValue = getter()
+
+    if (isFirstRun) {
+      isFirstRun = false
+      oldValue = newValue
+      if (options?.immediate) {
+        cb(newValue, undefined)
+      }
+    } else {
+      cb(newValue, oldValue)
+      oldValue = newValue
+    }
+  })
+
+  return runner.stop
 }

@@ -1,29 +1,10 @@
-import { reactive, effect, track, trigger } from './reactivity'
-import { evaluate, evaluateEvent } from './evaluator'
-import { createScope, parseNode } from './parser'
+import { reactive, watch } from './reactivity'
+import { createScope } from './parser'
 
-export {
-  reactive,
-  effect,
-  track,
-  trigger,
-  evaluate,
-  evaluateEvent,
-  createScope,
-  parseNode,
-}
+export { reactive, watch, createScope }
 
 if (typeof window !== 'undefined') {
   const w = window as any
   w.jsweb = w.jsweb || {}
-  w.jsweb.ui = {
-    createScope,
-    reactive,
-    effect,
-    track,
-    trigger,
-    evaluate,
-    evaluateEvent,
-    parseNode,
-  }
+  w.jsweb.ui = { createScope, reactive, watch }
 }
