@@ -88,6 +88,13 @@ export function createScope(
       : selectorOrElement
 
   if (el) {
+    if (!context.$emit) {
+      context.$emit = (eventName: string, detail?: any) => {
+        el.dispatchEvent(
+          new CustomEvent(eventName, { detail, bubbles: true, composed: true }),
+        )
+      }
+    }
     parseNode(el, context)
   } else {
     console.warn('[jsweb/ui] Element not found:', selectorOrElement)
@@ -122,6 +129,15 @@ function processScope(el: HTMLElement, context: Context) {
 
   const scope = evaluate(directive, context) || {}
   removeDirectiveAttributes(el, attrs)
+
+  if (!scope.$emit) {
+    scope.$emit = (event: string, detail?: any) => {
+      el.dispatchEvent(
+        new CustomEvent(event, { detail, bubbles: true, composed: true }),
+      )
+    }
+  }
+
   return createContext(scope, context)
 }
 
@@ -245,16 +261,24 @@ function processAttributes(el: HTMLElement, context: Context) {
 
     if (isText) {
       processTextBinding(el, value, context)
+      el.removeAttribute(name)
     } else if (isTwoWayBind) {
       processTwoWayBinding(el, value, context)
+      el.removeAttribute(name)
     } else if (isAttrBind) {
       const bound = name.split(':').pop()!
-      processAttrBinding(el, bound, value, context)
+      if (bound === 'class') {
+        processClassBinding(el, value, context)
+      } else if (bound === 'style') {
+        processStyleBinding(el, value, context)
+      } else {
+        processAttrBinding(el, bound, value, context)
+      }
+      el.removeAttribute(name)
     } else if (isEvent) {
       processEventBinding(el, name, value, context)
+      el.removeAttribute(name)
     }
-
-    el.removeAttribute(name)
   }
 }
 
@@ -312,6 +336,60 @@ function processAttrBinding(
     } else {
       el.setAttribute(attr, String(val))
     }
+  })
+}
+
+function processClassBinding(el: HTMLElement, expr: string, context: Context) {
+  let oldClasses = new Set<string>()
+
+  bindEffect(el, () => {
+    const val = evaluate(expr, context)
+    const newClasses = new Set<string>()
+    const addClass = (c: string) => c && newClasses.add(c)
+    const addClasses = (c: string) => c.split(/\s+/).forEach(addClass)
+
+    if (typeof val === 'string') addClasses(val)
+    else if (Array.isArray(val)) {
+      val.flat().forEach((c: any) => {
+        if (typeof c === 'string') addClasses(c)
+      })
+    } else if (typeof val === 'object' && val !== null) {
+      Object.entries(val).forEach(([c, condition]: [string, any]) => {
+        if (condition) addClasses(c)
+      })
+    }
+
+    oldClasses.forEach((c) => {
+      if (!newClasses.has(c)) el.classList.remove(c)
+    })
+    newClasses.forEach((c) => {
+      if (!oldClasses.has(c)) el.classList.add(c)
+    })
+
+    oldClasses = newClasses
+  })
+}
+
+function processStyleBinding(el: HTMLElement, expr: string, context: Context) {
+  let oldStyles: Record<string, any> = {}
+
+  bindEffect(el, () => {
+    const val = evaluate(expr, context)
+    const newStyles = typeof val === 'object' && val !== null ? val : {}
+
+    for (const key in oldStyles) {
+      if (!(key in newStyles)) {
+        ;(el.style as any)[key] = ''
+      }
+    }
+
+    for (const key in newStyles) {
+      if (oldStyles[key] !== newStyles[key]) {
+        ;(el.style as any)[key] = newStyles[key]
+      }
+    }
+
+    oldStyles = { ...newStyles }
   })
 }
 

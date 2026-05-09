@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JS Web UI Test</title>
+    <style>
+      .box {
+        padding: 20px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        margin-bottom: 10px;
+        color: white;
+      }
+      .active {
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        transform: scale(1.02);
+      }
+    </style>
     <script type="module">
       import { createScope, reactive } from '/src/index.ts'
 
@@ -13,7 +26,9 @@
         dec: 'Decremento',
         model: 'Exemplo',
         items: ['A', 'B', 'C'],
-        
+        active: false,
+        color: '#42b883',
+
         get computedItems() {
           return this.items.map((value, index) => {
             return { value, index }
@@ -39,7 +54,14 @@
         logEvent(e, ...args) {
           console.log('Evento recebido:', e, args)
           this.items.push(`Evento ${e.type}`)
-        }
+        },
+        toggleActive() {
+          this.active = !this.active
+        },
+        handleCustomEvent(e) {
+          alert(`Custom event received: ${e.detail.message}`)
+          this.items.push(`Custom Event: ${e.detail.message}`)
+        },
       })
 
       window.scope = scope
@@ -67,20 +89,73 @@
 
       <div style="margin-top: 20px">
         <h3>Lista:</h3>
-        <div style="margin-bottom: 10px;">
+        <div style="margin-bottom: 10px">
           <input type="text" :bind="model" placeholder="Digite algo..." />
           <p>Você vai adicionar: <strong :text="model"></strong></p>
           <button @click="addItem">Adicionar Item</button>
           <button @click="removeItem">Remover Item</button>
           <button @click="logEvent">Testar Evento (Sem Parênteses)</button>
-          <button @click="logEvent($event, 'A', 'B', 'C')">Testar Evento (Com Parênteses)</button>
+          <button @click="logEvent($event, 'A', 'B', 'C')">
+            Testar Evento (Com Parênteses)
+          </button>
         </div>
         <ul>
           <li :for="item of computedItems">
-            <span :text="item.index"></span> 
+            <span :text="item.index"></span>
             <input type="text" :value="item.value" />
           </li>
         </ul>
+      </div>
+
+      <hr />
+
+      <div style="margin-top: 20px">
+        <h3>Testes de :class e :style</h3>
+        <div
+          class="box"
+          :class="{ active }"
+          :style="{ backgroundColor: color, opacity: count ? 1 : 0.5 }"
+        >
+          Caixa de teste! Ativa: <strong :text="active"></strong>
+        </div>
+
+        <div style="margin-top: 10px">
+          <button @click="toggleActive">Alternar Classe 'active'</button>
+
+          <label style="margin-left: 10px">
+            Cor de Fundo:
+            <input type="color" :bind="color" />
+          </label>
+        </div>
+      </div>
+
+      <hr />
+
+      <div style="margin-top: 20px" @custom-event="handleCustomEvent">
+        <h3>Teste de $emit (Comunicação de Eventos)</h3>
+        <p>A div pai está escutando <code>@custom-event</code>.</p>
+
+        <!-- Escopo Filho Simulado -->
+        <div
+          :scope="{ component: 'Componente Interno' }"
+          style="
+            padding: 0 15px 15px 15px;
+            border: 2px dashed silver;
+            margin-top: 10px;
+          "
+        >
+          <p>Nome interno: <strong :text="component"></strong></p>
+          <button
+            @click="
+              $emit(
+                'custom-event',
+                { message: `Mensagem enviada do ${component}` },
+              )
+            "
+          >
+            Disparar evento para o pai
+          </button>
+        </div>
       </div>
     </div>
   </body>

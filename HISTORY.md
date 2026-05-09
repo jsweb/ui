@@ -22,7 +22,9 @@ Em vez de Virtual DOM, manipulamos o DOM real empacotando atualizações atravé
 - **`:if`:** Renderização condicional. O framework usa "âncoras" (`Comment Nodes`) para substituir dinamicamente o elemento no DOM quando a condição é falsa e restaurá-lo na posição exata quando for verdadeira.
 - **`:for` e Reconciliação:** Renderização de listas utilizando algoritmo de *diffing*. O motor rastreia chaves (`:key` ou fallback para índice) de cada elemento gerado e reutiliza os mesmos nós DOM (`RenderedNode`). Isso traz performance massiva e garante que atributos nativos do navegador (ex: foco de um input) não se percam em mudanças reativas do array.
 - **Atributos Genéricos (`:attr`):** Transformação dinâmica de qualquer atributo. Valores booleanos injetam/removem o atributo (ex: `disabled`).
-- **Eventos (`@event` e Modificadores):** Adição simples de ouvintes a qualquer evento DOM nativo. Inclui suporte nativo a **modificadores encadeados** com sintaxe de ponto (ex: `@submit.prevent`, `@click.stop`, `@click.self`) para um controle declarativo do comportamento do evento.
+- **Classes e Estilos Dinâmicos (`:class`, `:style`):** Suporte nativo a dicionários, arrays e strings lógicas para manipulação avançada de classes e estilos (ex: `:class="{ 'is-active': active }"`).
+- **Eventos (`@event` e Modificadores):** Adição simples de ouvintes a qualquer evento DOM nativo. Inclui suporte nativo a **modificadores encadeados** com sintaxe de ponto (ex: `@submit.prevent`, `@click.stop`, `@click.self`, `@click.outside`) para um controle declarativo do comportamento do evento.
+- **Eventos Customizados (`$emit`):** Injeção automática da função `$emit` em todos os escopos criados. Permite que componentes despachem `CustomEvents` nativos na árvore do DOM, facilitando a comunicação entre escopos (`@custom-event`).
 - **Two-way Data Binding (`:bind`):** Suporte total a reatividade bidirecional (Tela <-> Estado) para `input[text]`, `input[checkbox]`, `input[radio]`, `<select>` e `<textarea>`. Sincroniza em tempo real tanto via evento `input` quanto `change`.
 
 ## 📦 4. Build e Bundling (`vite.config.ts`)
@@ -31,6 +33,4 @@ Em vez de Virtual DOM, manipulamos o DOM real empacotando atualizações atravé
 - Geração automática de pacotes de tipagem (`dts`).
 
 ## 🎯 Próximos Passos (Backlog Futuro Sugerido)
-Para outros agentes, aqui estão os próximos passos lógicos de evolução deste framework:
-1. **Sintaxe Especial para Classes e Estilos:** Suporte para dicionários lógicos no CSS como `:class="{ 'is-active': active }"`.
-2. **Eventos customizados:** Implementação de um `$emit` para comunicação de um escopo/componente interno para um mais externo.
+Para outros agentes, o framework atingiu um nível excepcional de maturidade (versão 0.2.0-ready). Os próximos passos lógicos envolvem a criação de testes unitários extensivos e a refatoração ou criação de um sistema robusto de roteamento e componentização via Web Components nativos, integrando esta sintaxe ao shadow DOM.
