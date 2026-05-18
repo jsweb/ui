@@ -14,36 +14,31 @@ export function cleanupTree(node: Node) {
     bNode._effects = []
   }
   const children = Array.from(node.childNodes)
-  for (const child of children) {
-    cleanupTree(child)
-  }
+  for (const child of children) cleanupTree(child)
 }
 
-export function createContext(
-  scope: any,
-  context: Context | null = null,
-): Context {
+export function createContext(scope: any, context: Context = {}): Context {
   const reactiveScope = scope._isReactive ? scope : reactive(scope)
 
   return new Proxy(reactiveScope, {
     get(target, prop) {
       if (prop === '_isContext') return true
       if (prop in target) return Reflect.get(target, prop, target)
-      if (context && prop in context) {
+      if (prop in context) {
         return Reflect.get(context, prop, context)
       }
       return Reflect.get(target, prop, target)
     },
     set(target, prop, value) {
       if (prop in target) return Reflect.set(target, prop, value, target)
-      if (context && prop in context) {
+      if (prop in context) {
         return Reflect.set(context, prop, value, context)
       }
       return Reflect.set(target, prop, value, target)
     },
     has(target, prop) {
       if (prop in target) return true
-      if (context && prop in context) return true
+      if (prop in context) return true
       return false
     },
   })
@@ -54,6 +49,7 @@ export function parseNode(node: Node, context: Context) {
 
   const el = node as HTMLElement
   const scope = processScope(el, context)
+  if (!scope) return
 
   const forAttrs = ['ui:for', ':for']
   const forDirective = getDirectiveValue(el, forAttrs)
@@ -73,9 +69,7 @@ export function parseNode(node: Node, context: Context) {
   processAttributes(el, scope)
 
   const children = Array.from(el.childNodes)
-  for (const child of children) {
-    parseNode(child, scope)
-  }
+  for (const child of children) parseNode(child, scope)
 }
 
 export function createScope(
@@ -95,6 +89,7 @@ export function createScope(
         )
       }
     }
+
     parseNode(el, context)
   } else {
     console.warn('[jsweb/ui] Element not found:', selectorOrElement)
@@ -106,6 +101,10 @@ function bindEffect(node: Node, fn: () => void) {
   const bNode = node as BoundNode
   bNode._effects ??= []
   bNode._effects.push(e.stop)
+}
+
+function hasDirective(el: HTMLElement, names: string[]) {
+  return names.some((name) => el.hasAttribute(name))
 }
 
 function getDirectiveValue(el: HTMLElement, names: string[]) {
@@ -127,7 +126,9 @@ function processScope(el: HTMLElement, context: Context) {
   const directive = getDirectiveValue(el, attrs)
   if (!directive) return context
 
-  const scope = evaluate(directive, context) || {}
+  const scope = evaluate(directive, context)
+  if (!scope) return undefined
+
   removeDirectiveAttributes(el, attrs)
 
   if (!scope.$emit) {
@@ -313,11 +314,9 @@ function processTwoWayBinding(el: HTMLElement, expr: string, context: Context) {
   const isChange = isCheckbox || isRadio || el instanceof HTMLSelectElement
   const eventName = isChange ? 'change' : 'input'
   el.addEventListener(eventName, ($event) => {
-    if (isCheckbox) {
-      evaluateEvent(`${expr} = $event.target.checked`, context, $event)
-    } else {
-      evaluateEvent(`${expr} = $event.target.value`, context, $event)
-    }
+    const target = isCheckbox ? 'checked' : 'value'
+    const value = `$event.target.${target}`
+    evaluateEvent($event, `${expr} = ${value}`, context)
   })
 }
 
@@ -416,7 +415,7 @@ function processEventBinding(
     if (modifiers.includes('prevent')) $event.preventDefault()
     if (modifiers.includes('stop')) $event.stopPropagation()
 
-    evaluateEvent(expr, context, $event)
+    evaluateEvent($event, expr, context)
   }
 
   target.addEventListener(name, handler)

@@ -6,15 +6,15 @@ export function evaluate(
     const fn = new Function(`with(this) { return ${expression} }`)
     return fn.call(context)
   } catch (error) {
-    console.error(`[jsweb/ui] Error evaluating expression: ${expression}`, error)
+    console.warn(`[jsweb/ui] Error evaluating expression: ${expression}`, error)
     return undefined
   }
 }
 
 export function evaluateEvent(
+  $event: Event,
   expression: string,
   context: Record<string, any> = {},
-  $event: Event,
 ) {
   try {
     const exp = expression.trim()
@@ -25,7 +25,7 @@ export function evaluateEvent(
     const fn = new Function('$event', `with(this) { ${result} }`)
     fn.call(context, $event)
   } catch (error) {
-    console.error(
+    console.warn(
       `[jsweb/ui] Error evaluating event expression: ${expression}`,
       error,
     )
