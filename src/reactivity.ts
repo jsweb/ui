@@ -104,7 +104,7 @@ export function reactive<T extends object>(target: T): T {
 
       // getter
       const desc = Reflect.getOwnPropertyDescriptor(obj, key)
-      if (desc?.get) return desc.get.call(receiver)
+      if (desc?.get) return desc.get.call(obj)
 
       const res = Reflect.get(obj, key, receiver)
       // deep reactivity
