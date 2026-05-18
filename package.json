@@ -37,6 +37,7 @@
     "preview": "vite preview",
     "format": "prettier --write .",
     "test": "echo 'test'",
+    "preversion": "npm run build",
     "postversion": "git push && git push --tags"
   },
   "devDependencies": {

@@ -103,10 +103,6 @@ function bindEffect(node: Node, fn: () => void) {
   bNode._effects.push(e.stop)
 }
 
-function hasDirective(el: HTMLElement, names: string[]) {
-  return names.some((name) => el.hasAttribute(name))
-}
-
 function getDirectiveValue(el: HTMLElement, names: string[]) {
   for (const name of names) {
     const value = el.getAttribute(name)
