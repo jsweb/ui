@@ -33,7 +33,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node publish.js",
     "preview": "vite preview",
     "format": "prettier --write .",
     "test": "echo 'test'",

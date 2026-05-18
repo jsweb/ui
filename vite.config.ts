@@ -7,7 +7,7 @@ export default defineConfig({
       name: '@jsweb/ui',
       formats: ['es', 'umd'],
       entry: './src/index.ts',
-      fileName: (format: string) => `ui.${format}.js`,
+      fileName: (format: string) => `index.${format}.js`,
     },
     sourcemap: true,
     minify: 'terser',
