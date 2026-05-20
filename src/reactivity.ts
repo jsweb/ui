@@ -102,10 +102,6 @@ export function reactive<T extends object>(target: T): T {
       if (key === '_isReactive') return true
       track(obj, key)
 
-      // getter
-      const desc = Object.getOwnPropertyDescriptor(obj, key)
-      if (desc?.get) return desc.get.call(obj)
-
       const res = Reflect.get(obj, key, receiver)
       // deep reactivity
       return typeof res === 'object' && res !== null ? reactive(res) : res
