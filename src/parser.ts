@@ -253,6 +253,8 @@ function processAttributes(el: HTMLElement, context: Context) {
     const { name, value } = attr
     const isText = ['ui:text', ':text'].includes(name)
     const isTwoWayBind = ['ui:bind', ':bind'].includes(name)
+    const isClassBind = ['ui:class', ':class'].includes(name)
+    const isStyleBind = ['ui:style', ':style'].includes(name)
     const isAttrBind = name.startsWith('ui:') || name.startsWith(':')
     const isEvent = name.startsWith('ui@') || name.startsWith('@')
 
@@ -262,15 +264,15 @@ function processAttributes(el: HTMLElement, context: Context) {
     } else if (isTwoWayBind) {
       processTwoWayBinding(el, value, context)
       el.removeAttribute(name)
+    } else if (isClassBind) {
+      processClassBinding(el, value, context)
+      el.removeAttribute(name)
+    } else if (isStyleBind) {
+      processStyleBinding(el, value, context)
+      el.removeAttribute(name)
     } else if (isAttrBind) {
       const bound = name.split(':').pop()!
-      if (bound === 'class') {
-        processClassBinding(el, value, context)
-      } else if (bound === 'style') {
-        processStyleBinding(el, value, context)
-      } else {
-        processAttrBinding(el, bound, value, context)
-      }
+      processAttrBinding(el, bound, value, context)
       el.removeAttribute(name)
     } else if (isEvent) {
       processEventBinding(el, name, value, context)
