@@ -8,6 +8,7 @@ Construímos um motor baseado em **Signals** usando `Proxy` para interceptar lei
 - **Deep Reactivity:** A reatividade funciona recursivamente em objetos profundamente aninhados.
 - **Arrays e Mutabilidade:** Tratamento especial para arrays, onde a adição ou remoção de itens notifica dependências sobre a propriedade `length`, o que garante que loops reajam adequadamente a `.push`, `.pop`, etc.
 - **Transparência:** O usuário final trabalha com dados mutáveis puros sem a necessidade de getters/setters explícitos (ex: `state.count++` em vez de `state.count.value++`).
+- **Observadores (`watch`):** Implementação da função `watch` para observar reativamente objetos e propriedades, com suporte para disparo imediato (`immediate: true`) e acesso ao valor antigo/novo (`oldValue`, `newValue`).
 
 ## ⚙️ 2. Motor de Avaliação (`src/evaluator.ts`)
 As expressões declaradas no HTML (ex: `:text="count + 1"`) são avaliadas de forma dinâmica.

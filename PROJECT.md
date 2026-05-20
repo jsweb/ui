@@ -24,7 +24,7 @@
 - **Local Effect:** Deve ser possível criar efeitos locais que reajam a mudanças apenas dentro do escopo do componente.
 - **Lifecycle:** Deve ser possível criar efeitos que reajam a mudanças no ciclo de vida do componente.
 - **Cleanup:** Deve ser possível limpar os efeitos quando os componentes forem removidos do DOM.
-- **Watchers:** Deve ser possível criar watchers que reajam a mudanças em propriedades específicas do estado.
+- **Watchers:** Implementado via API `watch`, permitindo reagir a mudanças em propriedades com acesso ao valor anterior/novo e disparo imediato (`immediate`).
 - **Computed:** Deve ser possível criar propriedades computadas que reajam a mudanças em propriedades específicas do estado.
 - **Composition API:** Deve ser possível usar a Composition API para criar efeitos e reatividade e aninhar efeitos e reatividade em outros efeitos e reatividade.
 
@@ -46,15 +46,15 @@
 
 | Diretiva             | Descrição                                                                      | Exemplo                               |
 | :------------------- | :----------------------------------------------------------------------------- | :------------------------------------ |
-| `ui:scope`           | Define o objeto de estado para o elemento e seus filhos.                       | `<div ui:scope="{ count: 0 }">`       |
-| `ui:text`            | Sincroniza o `textContent` com uma variável.                                   | `<span ui:text="count"></span>`       |
+| `ui:scope` / `:scope`| Define o objeto de estado para o elemento e seus filhos.                       | `<div :scope="{ count: 0 }">`         |
+| `ui:text` / `:text`  | Sincroniza o `textContent` com uma variável.                                   | `<span :text="count"></span>`         |
 | `:attr`              | Shorthand para bind de atributos HTML nativos.                                 | `<button :disabled="count > 10">`     |
 | `:class` / `:style`  | Bind dinâmico avançado para classes CSS e Estilos Inline (dicionários, arrays).| `<div :class="{ active: isActive }">` |
 | `@event`             | Shorthand para event listeners (com suporte a modificadores).                  | `<button @click.prevent="save">`      |
 | `$emit`              | Despacha CustomEvents a partir do escopo atual. (Exposto no contexto)          | `<button @click="$emit('custom')">`   |
 | `:bind`              | Two-way data binding para inputs, checkboxes, radios e selects.                | `<input :bind="name">`                |
-| `ui:if`              | Adiciona/Remove o elemento do DOM (via Comment Node placeholder).              | `<div ui:if="count > 0">`             |
-| `ui:for`             | Renderiza uma lista de elementos a partir de um array.                         | `<li ui:for="item in items">`         |
+| `ui:if` / `:if`      | Adiciona/Remove o elemento do DOM (via Comment Node placeholder).              | `<div :if="count > 0">`               |
+| `ui:for` / `:for`    | Renderiza uma lista de elementos a partir de um array.                         | `<li :for="item in items">`           |
 
 ## 5. Requisitos de Engenharia (Instruções para a IA)
 
