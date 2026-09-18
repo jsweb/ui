@@ -90,6 +90,10 @@ export function createScope(
       }
     }
 
+    if (!context.$refs) {
+      context.$refs = new Map<string, any>()
+    }
+
     parseNode(el, context)
   } else {
     console.warn('[jsweb/ui] Element not found:', selectorOrElement)
@@ -133,6 +137,10 @@ function processScope(el: HTMLElement, context: Context) {
         new CustomEvent(event, { detail, bubbles: true, composed: true }),
       )
     }
+  }
+
+  if (!scope.$refs) {
+    scope.$refs = context.$refs ?? new Map<string, any>()
   }
 
   return createContext(scope, context)
@@ -180,19 +188,24 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
     renderedNodes.forEach((node) => oldNodesByKey.set(node.key, node))
 
     list.forEach((item, index) => {
-      const scope = { [itemName]: item, $index: index }
       let key: any = index
 
       if (keyDirective) {
-        const tempContext = createContext(scope, context)
+        const tempContext = createContext(
+          { [itemName]: item, $index: index },
+          context,
+        )
         key = evaluate(keyDirective, tempContext)
       }
+
+      const scope = { [itemName]: item, $index: index, $key: key }
 
       let node = oldNodesByKey.get(key)
       if (node) {
         // Reuse node
         node.scope[itemName] = item
         node.scope.$index = index
+        node.scope.$key = key
         oldNodesByKey.delete(key)
       } else {
         // Create new node
@@ -255,6 +268,7 @@ function processAttributes(el: HTMLElement, context: Context) {
     const isTwoWayBind = ['ui:bind', ':bind'].includes(name)
     const isClassBind = ['ui:class', ':class'].includes(name)
     const isStyleBind = ['ui:style', ':style'].includes(name)
+    const isRef = ['ui:ref', ':ref'].includes(name)
     const isAttrBind = name.startsWith('ui:') || name.startsWith(':')
     const isEvent = name.startsWith('ui@') || name.startsWith('@')
 
@@ -270,6 +284,9 @@ function processAttributes(el: HTMLElement, context: Context) {
     } else if (isStyleBind) {
       processStyleBinding(el, value, context)
       el.removeAttribute(name)
+    } else if (isRef) {
+      processRef(el, value, context)
+      el.removeAttribute(name)
     } else if (isAttrBind) {
       const bound = name.split(':').pop()!
       processAttrBinding(el, bound, value, context)
@@ -279,6 +296,43 @@ function processAttributes(el: HTMLElement, context: Context) {
       el.removeAttribute(name)
     }
   }
+}
+
+function processRef(el: HTMLElement, expr: string, context: Context) {
+  const refName = expr.trim().replace(/^['"]|['"]$/g, '')
+  if (!refName) return
+
+  const refs = context.$refs as Map<string, any>
+  if (!refs) return
+
+  const key = context.$key
+
+  if (key !== undefined) {
+    let group = refs.get(refName)
+    if (!(group instanceof Map)) {
+      group = new Map<any, HTMLElement>()
+      refs.set(refName, group)
+    }
+    group.set(key, el)
+  } else {
+    refs.set(refName, el)
+  }
+
+  const bNode = el as BoundNode
+  bNode._effects ??= []
+  bNode._effects.push(() => {
+    if (key !== undefined) {
+      const group = refs.get(refName)
+      if (group instanceof Map) {
+        group.delete(key)
+        if (group.size === 0) {
+          refs.delete(refName)
+        }
+      }
+    } else if (refs.get(refName) === el) {
+      refs.delete(refName)
+    }
+  })
 }
 
 function processTextBinding(el: HTMLElement, expr: string, context: Context) {

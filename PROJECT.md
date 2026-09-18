@@ -42,19 +42,35 @@
 - **Traversal:** Utilizar `TreeWalker` ou recursão otimizada para identificar diretivas.
 - **Limpeza:** Atributos `ui:*`, `ui:@*`, `@*` e `:*` devem ser removidos do DOM após a inicialização para manter o HTML limpo.
 
-## 4. Sintaxe e Diretivas (v0.1.0)
+## 4. Sintaxe e Diretivas
 
-| Diretiva             | Descrição                                                                      | Exemplo                               |
-| :------------------- | :----------------------------------------------------------------------------- | :------------------------------------ |
-| `ui:scope` / `:scope`| Define o objeto de estado para o elemento e seus filhos.                       | `<div :scope="{ count: 0 }">`         |
-| `ui:text` / `:text`  | Sincroniza o `textContent` com uma variável.                                   | `<span :text="count"></span>`         |
-| `:attr`              | Shorthand para bind de atributos HTML nativos.                                 | `<button :disabled="count > 10">`     |
-| `:class` / `:style`  | Bind dinâmico avançado para classes CSS e Estilos Inline (dicionários, arrays).| `<div :class="{ active: isActive }">` |
-| `@event`             | Shorthand para event listeners (com suporte a modificadores).                  | `<button @click.prevent="save">`      |
-| `$emit`              | Despacha CustomEvents a partir do escopo atual. (Exposto no contexto)          | `<button @click="$emit('custom')">`   |
-| `:bind`              | Two-way data binding para inputs, checkboxes, radios e selects.                | `<input :bind="name">`                |
-| `ui:if` / `:if`      | Adiciona/Remove o elemento do DOM (via Comment Node placeholder).              | `<div :if="count > 0">`               |
-| `ui:for` / `:for`    | Renderiza uma lista de elementos a partir de um array.                         | `<li :for="item in items">`           |
+| Diretiva     | Atalho     | Descrição                                                                            | Exemplo                                    |
+| :----------- | :--------- | :----------------------------------------------------------------------------------- | :----------------------------------------- |
+| `ui:scope`   | `:scope`   | Define o objeto de estado/contexto para o elemento e seus filhos.                    | `<div :scope="{ count: 0 }">`              |
+| `ui:text`    | `:text`    | Sincroniza o `textContent` com uma variável ou expressão.                            | `<span :text="count"></span>`              |
+| `ui:bind`    | `:bind`    | Two-way data binding para inputs, checkboxes, radios, selects e textareas.           | `<input :bind="name">`                     |
+| `ui:if`      | `:if`      | Adiciona/Remove o elemento do DOM (via Comment Node placeholder).                    | `<div :if="count > 0">`                    |
+| `ui:for`     | `:for`     | Renderiza uma lista de elementos a partir de um array (`in` ou `of`).                | `<li :for="item of items">`                |
+| `ui:key`     | `:key`     | Chave de reconciliação para reaproveitamento e reciclagem de nós DOM em listas.      | `<li :for="item of items" :key="item.id">` |
+| `ui:class`   | `:class`   | Bind dinâmico para classes CSS (objeto booleano, array ou string).                   | `<div :class="{ active: isActive }">`      |
+| `ui:style`   | `:style`   | Bind dinâmico para estilos inline (objeto chave/valor de estilos CSS).               | `<div :style="{ color: textColor }">`      |
+| `ui:ref`     | `:ref`     | Indexa elementos HTML em um Map acessível via `$refs` (suporta chaves de lista).     | `<input :ref="myInput">`                   |
+| `ui:[attr]`  | `:[attr]`  | Bind de atributos HTML nativos com suporte a valores booleanos (ex: disabled, href). | `<button :disabled="count > 10">`          |
+| `ui@[event]` | `@[event]` | Event listeners com suporte a `$event` e modificadores encadeados.                   | `<button @click.prevent="save">`           |
+
+### Modificadores de Eventos
+
+- `.prevent`: Executa `$event.preventDefault()`.
+- `.stop`: Executa `$event.stopPropagation()`.
+- `.self`: Executa o manipulador apenas se `$event.target === el`.
+- `.outside`: Executa o manipulador quando o evento ocorre fora do elemento (com cleanup de listener no document ao desconectar o nó).
+
+### Helpers e Variáveis Contextuais
+
+- `$refs`: Instância de `Map` nativa indexando elementos referenciados (elementos únicos ou Maps aninhados para itens de loops com `:key`).
+- `$emit(eventName, detail?)`: Despacha CustomEvents (`bubbles: true`, `composed: true`) a partir do escopo atual.
+- `$event`: Objeto nativo do evento disparado, disponível nas expressões de eventos ou repassado como 1º argumento na sintaxe de referência direta.
+- `$index`: Índice numérico atual da iteração em loops `ui:for` / `:for`.
 
 ## 5. Requisitos de Engenharia (Instruções para a IA)
 

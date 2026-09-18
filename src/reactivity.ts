@@ -91,6 +91,18 @@ export function reactive<T extends object>(target: T): T {
   const notObject = typeof target !== 'object' || target === null
   if (notObject) return target
 
+  if (
+    target instanceof Map ||
+    target instanceof Set ||
+    target instanceof WeakMap ||
+    target instanceof WeakSet ||
+    target instanceof Date ||
+    target instanceof RegExp ||
+    (typeof Node === 'function' && target instanceof Node)
+  ) {
+    return target
+  }
+
   const isReactive = Object.hasOwn(target, '_isReactive')
   if (isReactive) return target
 

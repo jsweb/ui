@@ -18,7 +18,7 @@
       }
     </style>
     <script type="module">
-      import { createScope, reactive } from "./src/index.ts"
+      import { createScope, reactive } from './src/index.ts'
 
       const scope = reactive({
         count: 0,
@@ -62,6 +62,28 @@
           alert(`Custom event received: ${e.detail.message}`)
           this.items.push(`Custom Event: ${e.detail.message}`)
         },
+        focusInputModel() {
+          const input = this.$refs.get('inputModel')
+          if (input) {
+            input.focus()
+            input.style.outline = '2px solid blue'
+            console.log('Single ref resgatada com sucesso:', input)
+          }
+        },
+        focusListItem(idx) {
+          const inputMap = this.$refs.get('itemInput')
+          console.log('Nested Map de refs da lista:', inputMap)
+          const el = inputMap?.get(idx)
+          if (el) {
+            el.focus()
+            el.select()
+            console.log(`Elemento da chave ${idx} resgatado:`, el)
+          }
+        },
+        logRefs() {
+          console.log('Todas as $refs indexadas no Map:', this.$refs)
+          alert(`Refs mapeadas: ${Array.from(this.$refs.keys()).join(', ')}`)
+        },
       })
 
       window.scope = scope
@@ -90,19 +112,31 @@
       <div style="margin-top: 20px">
         <h3>Lista:</h3>
         <div style="margin-bottom: 10px">
-          <input type="text" :bind="model" placeholder="Digite algo..." />
+          <input
+            type="text"
+            :bind="model"
+            :ref="inputModel"
+            placeholder="Digite algo..."
+          />
           <p>Você vai adicionar: <strong :text="model"></strong></p>
           <button @click="addItem">Adicionar Item</button>
           <button @click="removeItem">Remover Item</button>
+          <button @click="focusInputModel">
+            Focar Campo via this.$refs.get('inputModel')
+          </button>
+          <button @click="logRefs">Inspecionar $refs no Console</button>
           <button @click="logEvent">Testar Evento (Sem Parênteses)</button>
           <button @click="logEvent($event, 'A', 'B', 'C')">
             Testar Evento (Com Parênteses)
           </button>
         </div>
         <ul>
-          <li :for="item of computedItems">
-            <span :text="item.index"></span>
-            <input type="text" :value="item.value" />
+          <li :for="item of computedItems" :key="item.index" :ref="itemRow">
+            <span :text="item.index"></span>:
+            <input type="text" :value="item.value" :ref="itemInput" />
+            <button @click="focusListItem(item.index)">
+              Focar este input ($refs.get('itemInput').get($key))
+            </button>
           </li>
         </ul>
       </div>
