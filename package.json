@@ -38,7 +38,7 @@
     "format": "prettier --write .",
     "test": "echo 'test'",
     "preversion": "npm run build",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags && npm publish"
   },
   "devDependencies": {
     "prettier": "^3.8.3",

@@ -28,6 +28,8 @@ writeFileSync(target, JSON.stringify(pkgInfo, null, 2))
 // 4. Copia arquivos de metadados importantes para o NPM
 copyFileSync(resolve(root, 'README.md'), resolve(root, 'dist/README.md'))
 copyFileSync(resolve(root, 'LICENSE'), resolve(root, 'dist/LICENSE'))
+copyFileSync(resolve(root, 'SKILL.md'), resolve(root, 'dist/SKILL.md'))
+copyFileSync(resolve(root, 'CHANGELOG.md'), resolve(root, 'dist/CHANGELOG.md'))
 
 console.log(
   '✅ Arquivo package.json mínimo e metadados preparados na pasta dist/',

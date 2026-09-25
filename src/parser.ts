@@ -1,4 +1,4 @@
-import { effect, reactive } from './reactivity'
+import { effect, reactive, type ScopeContext } from './reactivity'
 import { evaluate, evaluateEvent } from './evaluator'
 
 export type Context = Record<string, any>
@@ -72,9 +72,9 @@ export function parseNode(node: Node, context: Context) {
   for (const child of children) parseNode(child, scope)
 }
 
-export function createScope(
+export function createScope<T extends object = Context>(
   selectorOrElement: string | HTMLElement,
-  context: Context = {},
+  context?: T & ThisType<T & ScopeContext>,
 ) {
   const el =
     typeof selectorOrElement === 'string'
@@ -82,19 +82,22 @@ export function createScope(
       : selectorOrElement
 
   if (el) {
-    if (!context.$emit) {
-      context.$emit = (eventName: string, detail?: any) => {
+    const ctx = (context ?? {}) as Context
+    ctx.$el = el
+
+    if (!ctx.$emit) {
+      ctx.$emit = (eventName: string, detail?: any) => {
         el.dispatchEvent(
           new CustomEvent(eventName, { detail, bubbles: true, composed: true }),
         )
       }
     }
 
-    if (!context.$refs) {
-      context.$refs = new Map<string, any>()
+    if (!ctx.$refs) {
+      ctx.$refs = new Map<string, any>()
     }
 
-    parseNode(el, context)
+    parseNode(el, ctx)
   } else {
     console.warn('[jsweb/ui] Element not found:', selectorOrElement)
   }
@@ -130,6 +133,8 @@ function processScope(el: HTMLElement, context: Context) {
   if (!scope) return undefined
 
   removeDirectiveAttributes(el, attrs)
+
+  scope.$el = el
 
   if (!scope.$emit) {
     scope.$emit = (event: string, detail?: any) => {
@@ -198,18 +203,23 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
         key = evaluate(keyDirective, tempContext)
       }
 
-      const scope = { [itemName]: item, $index: index, $key: key }
-
       let node = oldNodesByKey.get(key)
       if (node) {
         // Reuse node
         node.scope[itemName] = item
         node.scope.$index = index
         node.scope.$key = key
+        node.scope.$el = node.el
         oldNodesByKey.delete(key)
       } else {
         // Create new node
         const clone = el.cloneNode(true) as HTMLElement
+        const scope = {
+          [itemName]: item,
+          $index: index,
+          $key: key,
+          $el: clone,
+        }
         const reactiveScope = reactive(scope)
         const localContext = createContext(reactiveScope, context)
         parseNode(clone, localContext)

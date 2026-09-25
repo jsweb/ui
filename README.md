@@ -174,6 +174,10 @@ O atributo `ui:ref` ou `:ref` indexa o elemento diretamente em um objeto `Map` a
 
 ### TypeScript / ESM
 
+#### Abordagem com Objeto Literal (`ThisType`)
+
+Graças ao utilitário `ThisType<T & ScopeContext>`, dentro dos métodos e _getters_ do objeto literal você tem autocomplete e tipagem estrita de `this`, incluindo as propriedades do objeto e os helpers `$refs` e `$emit`:
+
 ```typescript
 import { createScope, reactive, watch } from '@jsweb/ui'
 
@@ -181,15 +185,22 @@ const scope = reactive({
   count: 0,
   inc: 'Incremento',
   dec: 'Decremento',
+
+  get double() {
+    return this.count * 2
+  },
+
   increment() {
     this.count++
+    this.$emit('changed', this.count)
+    this.$refs.get('meuInput')?.focus()
   },
   decrement() {
     this.count--
   },
 })
 
-// Observa mudanças com suporte a oldValue/newValue e disparo imediato opcional
+// Observa mudanças com suporte a tipagem genérica, oldValue/newValue e disparo imediato
 const unwatch = watch(
   () => scope.count,
   (newVal, oldVal) => {
@@ -201,27 +212,81 @@ const unwatch = watch(
 createScope('#container', { scope })
 ```
 
+#### Abordagem Orientada a Objetos com a Classe `Scope`
+
+Você também pode utilizar classes TypeScript estendendo a classe base `Scope` fornecida pelo framework:
+
+```typescript
+import { createScope, reactive, Scope } from '@jsweb/ui'
+
+class ContadorScope extends Scope {
+  count = 0
+  inc = 'Incremento'
+  dec = 'Decremento'
+
+  get double() {
+    return this.count * 2
+  }
+
+  increment() {
+    this.count++
+    this.$emit('changed', this.count)
+    this.$refs.get('meuInput')?.focus()
+  }
+
+  decrement() {
+    this.count--
+  }
+
+  // É possível sobrescrever o método $emit se desejar lógica customizada:
+  protected override $emit(event: string, detail?: any) {
+    console.log(`[Contador] Evento disparado: ${event}`, detail)
+    super.$emit(event, detail)
+  }
+}
+
+const scope = reactive(new ContadorScope())
+createScope('#container', { scope })
+```
+
 ## API JavaScript / TypeScript
 
-### `createScope(selectorOrElement, context?)`
+### `createScope<T>(selectorOrElement, context?)`
 
 Inicializa e amarra a reatividade ao elemento DOM ou seletor especificado.
 
 - **`selectorOrElement`**: Seletor CSS (ex: `'#app'`, `'body'`) ou instância de `HTMLElement`.
-- **`context`**: Objeto inicial de contexto/estado compartilhado (opcional). Injeta automaticamente o helper `$emit` no escopo.
+- **`context`**: Objeto inicial de contexto/estado compartilhado (opcional), tipado contextualmente com `ThisType<T & ScopeContext>`. Injeta automaticamente os helpers `$emit` e `$refs`.
 
 ### `reactive(target)`
 
 Envolve um objeto ou array em um `Proxy` de reatividade de grão fino (_fine-grained_).
 
-- Suporta reatividade profunda (_deep reactivity_).
-- Intercepta mutações em arrays (`push`, `pop`, `splice`, etc.) e mutações de propriedades em objetos.
+- **Objeto Literal**: Tipado com `ThisType<T & ScopeContext>` para inferência e autocomplete de `this` (incluindo computeds via _getters_ e helpers contextuais `$refs`, `$emit` e `$el` prontos para uso sem necessidade de `?.`).
+- **Instâncias de Classes**: Suporta instâncias que estendem `Scope` ou classes POJO personalizadas.
+- **Arrays**: Intercepta métodos de mutação (`push`, `pop`, `splice`, etc.) e gerencia dependências de tamanho (`length`).
+- **Suporta reatividade profunda** (_deep reactivity_).
 
-### `watch(source, callback, options?)`
+### `Scope`
+
+Classe base utilitária para definição de escopos orientados a objetos em TypeScript. Já possui `$el` e `$refs` implementados como somente leitura e `$emit` com implementação padrão como método `protected`, permitindo sobrescrita (`override`) nas subclasses.
+
+```typescript
+export class Scope {
+  readonly $el: HTMLElement
+  protected readonly $refs: Map<string, any>
+  protected $emit(event: string, detail?: any): void
+  declare $index?: number
+  declare $key?: any
+  constructor(init?: Record<string, any>)
+}
+```
+
+### `watch<T>(source, callback, options?)`
 
 Observa alterações reativas e executa uma função de callback quando o valor mudar.
 
 - **`source`**: Objeto reativo completo ou função getter que retorna o valor a ser observado (ex: `() => state.count`).
-- **`callback`**: `(newValue: any, oldValue: any) => void`.
+- **`callback`**: `(newValue: T, oldValue: T | undefined) => void`.
 - **`options`**: `{ immediate?: boolean }` para acionar a callback imediatamente na primeira execução.
 - **Retorno**: Função de cancelamento `stop()` que encerra a observação e limpa dependências.

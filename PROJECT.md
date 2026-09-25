@@ -10,7 +10,7 @@
 - **Dual Distribution:**
   - **Standalone:** Arquivo único (IIFE/UMD) para inclusão via `<script src="...">`.
   - **Module:** Pacote ESM com exports nomeados para suporte a Tree-Shaking.
-- **Hybrid Context:** Suporte a definição de estado via Objetos Literais (POJOs) ou Classes TypeScript.
+- **Hybrid Context:** Suporte a definição de estado via Objetos Literais (POJOs) tipados contextualmente via `ThisType<T & ScopeContext>` ou Classes TypeScript estendendo a classe base `Scope`.
 - **Template Engine:** Baseado em atributos customizados no HTML (`ui:*` para diretivas e `ui@*` para eventos, com shorthands `@`, `:`).
 
 ## 3. Especificações do Motor (Core)
@@ -25,7 +25,8 @@
 - **Lifecycle:** Deve ser possível criar efeitos que reajam a mudanças no ciclo de vida do componente.
 - **Cleanup:** Deve ser possível limpar os efeitos quando os componentes forem removidos do DOM.
 - **Watchers:** Implementado via API `watch`, permitindo reagir a mudanças em propriedades com acesso ao valor anterior/novo e disparo imediato (`immediate`).
-- **Computed:** Deve ser possível criar propriedades computadas que reajam a mudanças em propriedades específicas do estado.
+- **Computed:** Deve ser possível criar propriedades computadas que reajam a mudanças em propriedades específicas do estado (via _getters_ nativos).
+- **TypeScript First DX:** Tipagem estrita de `this` via `ThisType<T & ScopeContext>` para objetos literais e classe utilitária `Scope` para POJOs orientados a objetos.
 - **Composition API:** Deve ser possível usar a Composition API para criar efeitos e reatividade e aninhar efeitos e reatividade em outros efeitos e reatividade.
 
 ### B. Avaliador de Expressões (The Evaluator)

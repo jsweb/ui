@@ -87,7 +87,49 @@ export function trigger(target: object, key: string | symbol) {
   }
 }
 
-export function reactive<T extends object>(target: T): T {
+export interface ScopeContext {
+  /** Elemento DOM raiz associado ao escopo (somente leitura) */
+  readonly $el: HTMLElement
+  /** Map nativo indexando elementos referenciados via ui:ref / :ref (somente leitura) */
+  readonly $refs: Map<string, any>
+  /** Despacha CustomEvents nativos (bubbles: true, composed: true) */
+  $emit: (event: string, detail?: any) => void
+  /** Índice numérico da iteração atual em loops ui:for / :for */
+  $index?: number
+  /** Chave de identificação da iteração em loops ui:for / :for */
+  $key?: any
+}
+
+export class Scope {
+  /** Elemento DOM raiz ao qual o escopo foi acoplado (somente leitura) */
+  declare readonly $el: HTMLElement
+
+  /** Map nativo indexando elementos referenciados via ui:ref / :ref (somente leitura) */
+  protected readonly $refs: Map<string, any> = new Map<string, any>()
+
+  /** Despacha CustomEvents nativos (bubbles: true, composed: true) */
+  protected $emit(event: string, detail?: any): void {
+    const target = this.$el || (typeof window !== 'undefined' ? window : null)
+    target?.dispatchEvent(
+      new CustomEvent(event, { detail, bubbles: true, composed: true }),
+    )
+  }
+
+  declare $index?: number
+  declare $key?: any
+
+  constructor(init?: Record<string, any>) {
+    if (init && typeof init === 'object') {
+      Object.assign(this, init)
+    }
+  }
+}
+
+export function reactive<T extends any[]>(target: T): T
+export function reactive<T extends object>(
+  target: T & ThisType<T & ScopeContext>,
+): T & ScopeContext
+export function reactive<T extends object>(target: T): any {
   const notObject = typeof target !== 'object' || target === null
   if (notObject) return target
 
@@ -156,11 +198,11 @@ export function traverse(value: any, seen = new Set()) {
   return value
 }
 
-export function watch(
-  source: any | (() => any),
-  cb: (newValue: any, oldValue: any) => void,
+export function watch<T>(
+  source: (() => T) | any,
+  cb: (newValue: T, oldValue: T | undefined) => void,
   options?: { immediate?: boolean },
-) {
+): () => void {
   let oldValue: any
   let isFirstRun = true
 
