@@ -10,6 +10,24 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 
 ---
 
+## [1.3.2] - 2026-09-25
+
+### Fixed
+
+- **Alvo de Publicação no NPM**: Correção do fluxo de publicação para empacotar e publicar exclusivamente o conteúdo da pasta `dist/` (`npm publish ./dist`), evitando a inclusão indevida de código-fonte (`src/`), configurações internas e arquivos desnecessários no pacote publicado.
+- **Entry Points no `package.json`**: Correção dos campos `main`, `module` e `exports` na raiz do projeto para apontar para `dist/index.umd.js` e `dist/index.es.js` (substituindo antigas referências a `ui.*`), preservando a compatibilidade em desenvolvimento local.
+
+### Changed
+
+- **Scripts de Publicação e Automação**:
+  - Adicionado script `npm run dist` (`npm run build && npm publish ./dist`) para build e publicação direta da pasta `dist/`.
+  - Atualizado `npm run push` para executar `git push && git push --tags && npm run dist`.
+  - Migrado hook de ciclo de vida de `preversion` para `version` no `package.json`, garantindo que o build e o script `publish.js` executem após o incremento da versão, sincronizando o número correto em `dist/package.json`.
+- **Salvaguarda contra Publicação na Raiz**: Adicionado script `prepublishOnly` no `package.json` da raiz para abortar execuções acidentais de `npm publish` fora da pasta `dist/`.
+- **Declarações de Tipos Limpas no Build**: Configurado `include: ['src']` no plugin `vite-plugin-dts` em `vite.config.ts`, impedindo que arquivos como `vite.config.d.ts` vazassem para a pasta de distribuição.
+
+---
+
 ## [1.3.1] - 2026-09-24
 
 ### Added
