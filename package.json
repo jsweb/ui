@@ -21,15 +21,18 @@
   "license": "MIT",
   "author": "Alex Bruno Cáceres <email@alexbruno.dev>",
   "type": "module",
-  "main": "dist/ui.umd.js",
-  "module": "dist/ui.es.js",
+  "main": "dist/index.umd.js",
+  "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/ui.es.js",
-      "require": "./dist/ui.umd.js",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "vite",
@@ -37,8 +40,10 @@
     "preview": "vite preview",
     "format": "prettier --write .",
     "test": "echo 'test'",
-    "preversion": "npm run build",
-    "push": "git push && git push --tags && npm publish"
+    "version": "npm run build",
+    "prepublishOnly": "node -e \"console.error('❌ Erro: Nao publique pela raiz! Use: npm run dist'); process.exit(1)\"",
+    "dist": "npm run build && npm publish ./dist",
+    "push": "git push && git push --tags && npm run dist"
   },
   "devDependencies": {
     "prettier": "^3.8.3",

@@ -12,5 +12,5 @@ export default defineConfig({
     sourcemap: true,
     minify: 'terser',
   },
-  plugins: [dts({ insertTypesEntry: true })],
+  plugins: [dts({ include: ['src'], insertTypesEntry: true })],
 })
