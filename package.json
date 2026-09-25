@@ -40,7 +40,6 @@
     "preview": "vite preview",
     "format": "prettier --write .",
     "test": "echo 'test'",
-    "version": "npm run build",
     "prepublishOnly": "node -e \"console.error('❌ Erro: Nao publique pela raiz! Use: npm run dist'); process.exit(1)\"",
     "dist": "npm run build && npm publish ./dist",
     "push": "git push && git push --tags && npm run dist"
