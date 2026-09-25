@@ -10,6 +10,22 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 
 ---
 
+## [1.3.3] - 2026-09-25
+
+### Changed
+
+- **Estrutura de Diretório da Skill para Agentes de IA**:
+  - Movimentação do arquivo de skill da raiz (`SKILL.md`) para o subdiretório dedicado [`skills/jsweb-ui/SKILL.md`](./skills/jsweb-ui/SKILL.md), em conformidade com o padrão oficial do ecossistema de Agent Skills ([skills.sh](https://skills.sh)).
+  - Garante que a instalação via `npx skills add jsweb/ui` faça o download estritamente do conteúdo da pasta da skill, evitando que arquivos de código-fonte (`src/`), artefatos de compilação (`dist/`) e configurações do repositório sejam baixados indevidamente no projeto do usuário.
+- **Automação de Build e Metadados (`publish.js`)**:
+  - Atualização do script [`publish.js`](./publish.js) para sincronizar o arquivo a partir de `skills/jsweb-ui/SKILL.md` para `dist/SKILL.md` durante a execução do comando `npm run build`.
+- **Scripts do `package.json`**:
+  - Remoção do hook de ciclo de vida `"version"` do `package.json`, mantendo o processo de build desacoplado do versionamento e centralizado no script de distribuição (`npm run dist` / `npm run push`).
+- **Documentação Interna**:
+  - Atualização dos caminhos de referência da skill nos documentos do projeto e na especificação interna [`.agents/skills/update-documentation/SKILL.md`](./.agents/skills/update-documentation/SKILL.md).
+
+---
+
 ## [1.3.2] - 2026-09-25
 
 ### Fixed
