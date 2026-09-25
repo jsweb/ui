@@ -12,12 +12,12 @@ This skill guides the agent through auditing codebase changes and systematically
 
 ## Target Documentation Files
 
-| File                                                               | Audience                     | Purpose                                                                                                                                 | Language             |
-| :----------------------------------------------------------------- | :--------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- | :------------------- |
-| [`README.md`](file:///d:/Projetos/github/jsweb/ui/README.md)       | Developers & End Users       | Public GitHub/NPM documentation, quickstart, installation, directives reference table, and usage examples.                              | Portuguese / English |
-| [`PROJECT.md`](file:///d:/Projetos/github/jsweb/ui/PROJECT.md)     | Maintainers & Architecture   | Technical specification, core engine mechanics (Reactivity, Evaluator, Parser), architectural pillars, and requirements.                | Portuguese           |
-| [`SKILL.md`](file:///d:/Projetos/github/jsweb/ui/SKILL.md)         | AI Coding Agents             | Operational knowledge base installed via `npx skills add @jsweb/ui`, defining rules, directives, APIs, patterns, and agent constraints. | English              |
-| [`CHANGELOG.md`](file:///d:/Projetos/github/jsweb/ui/CHANGELOG.md) | All (Users, Maintainers, AI) | Curated chronological log of notable changes (Added, Changed, Deprecated, Removed, Fixed, Security) adhering to Keep a Changelog.       | Portuguese           |
+| File                                                                       | Audience                     | Purpose                                                                                                                                | Language             |
+| :------------------------------------------------------------------------- | :--------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- | :------------------- |
+| [`README.md`](file:///d:/Projetos/github/jsweb/ui/README.md)               | Developers & End Users       | Public GitHub/NPM documentation, quickstart, installation, directives reference table, and usage examples.                             | Portuguese / English |
+| [`PROJECT.md`](file:///d:/Projetos/github/jsweb/ui/PROJECT.md)             | Maintainers & Architecture   | Technical specification, core engine mechanics (Reactivity, Evaluator, Parser), architectural pillars, and requirements.               | Portuguese           |
+| [`SKILL.md`](file:///d:/Projetos/github/jsweb/ui/skills/jsweb-ui/SKILL.md) | AI Coding Agents             | Operational knowledge base installed via `npx skills add jsweb/ui`, defining rules, directives, APIs, patterns, and agent constraints. | English              |
+| [`CHANGELOG.md`](file:///d:/Projetos/github/jsweb/ui/CHANGELOG.md)         | All (Users, Maintainers, AI) | Curated chronological log of notable changes (Added, Changed, Deprecated, Removed, Fixed, Security) adhering to Keep a Changelog.      | Portuguese           |
 
 ---
 
@@ -74,7 +74,7 @@ Check whether any of the following changed:
 - Keep Section 4 (Sintaxe e Diretivas) aligned with the exact implementation in `parser.ts`.
 - Document any architectural decisions (e.g., memory management, cleanup hooks, node recycling).
 
-#### C. Updating `SKILL.md` (Root)
+#### C. Updating `skills/jsweb-ui/SKILL.md`
 
 - Ensure YAML frontmatter `description` contains comprehensive trigger keywords.
 - Update the API Reference section with precise TypeScript signatures and return types.
@@ -114,7 +114,7 @@ Check whether any of the following changed:
 
 Present a concise summary of:
 
-- Which files were updated ([README.md](file:///d:/Projetos/github/jsweb/ui/README.md), [PROJECT.md](file:///d:/Projetos/github/jsweb/ui/PROJECT.md), [SKILL.md](file:///d:/Projetos/github/jsweb/ui/SKILL.md), [CHANGELOG.md](file:///d:/Projetos/github/jsweb/ui/CHANGELOG.md)).
+- Which files were updated ([README.md](file:///d:/Projetos/github/jsweb/ui/README.md), [PROJECT.md](file:///d:/Projetos/github/jsweb/ui/PROJECT.md), [SKILL.md](file:///d:/Projetos/github/jsweb/ui/skills/jsweb-ui/SKILL.md), [CHANGELOG.md](file:///d:/Projetos/github/jsweb/ui/CHANGELOG.md)).
 - Specific sections added, modified, or removed in each file.
 - Confirmation that `npm run build` and `npm run format` passed cleanly.
 
