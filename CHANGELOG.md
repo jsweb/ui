@@ -8,6 +8,10 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 
 ## [Unreleased]
 
+---
+
+## [1.3.4] - 2026-10-29
+
 ### Added
 
 - **Diretiva Estática `ui-cloak`**: Marcador de presença que oculta o elemento via CSS (`[ui-cloak] { display: none !important; }`) até que a subárvore seja parseada, evitando FOUC. O atributo é removido automaticamente após o parsing e funciona com `:scope`, `:if` e `:for`. Por ser um marcador estático, não aceita expressão nem shorthand (diferente das diretivas `ui:*`/`:*`).
