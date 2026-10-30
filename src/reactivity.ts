@@ -6,6 +6,73 @@ const targetMap = new WeakMap<
 const proxyMap = new WeakMap<object, any>()
 const effectMap = new WeakMap<symbol, ReactiveEffect>()
 
+/**
+ * Mutações de array executam vários `set` internos (ex.: `splice` desloca
+ * índices e depois ajusta `length`). Sem agrupamento, os efeitos rodam em
+ * estados intermediários, nos quais chaves podem aparecer duplicadas.
+ * Durante um método mutador, os disparos são coletados e executados uma única
+ * vez ao final, já com o array em seu estado final.
+ */
+let batchDepth = 0
+const pendingTriggers = new Map<object, Set<string | symbol>>()
+
+const ARRAY_MUTATORS = new Set([
+  'copyWithin',
+  'fill',
+  'pop',
+  'push',
+  'reverse',
+  'shift',
+  'sort',
+  'splice',
+  'unshift',
+])
+const arrayMutatorCache = new Map<string, (...args: any[]) => any>()
+
+function getArrayMutator(method: string) {
+  let wrapped = arrayMutatorCache.get(method)
+
+  if (!wrapped) {
+    wrapped = function (this: any[], ...args: any[]) {
+      batchDepth++
+
+      try {
+        return (Array.prototype as any)[method].apply(this, args)
+      } finally {
+        batchDepth--
+        if (batchDepth === 0) flushTriggers()
+      }
+    }
+
+    arrayMutatorCache.set(method, wrapped)
+  }
+
+  return wrapped
+}
+
+function flushTriggers() {
+  if (pendingTriggers.size === 0) return
+
+  const pending = Array.from(pendingTriggers)
+  pendingTriggers.clear()
+
+  // Um mesmo efeito pode depender de várias chaves alteradas pela mutação.
+  // Coletar em um Set garante uma única execução por efeito, já com o estado
+  // final do array.
+  const effects = new Set<ReactiveEffect>()
+
+  for (const [target, keys] of pending) {
+    const depsMap = targetMap.get(target)
+    if (!depsMap) continue
+
+    keys.forEach((key) => {
+      depsMap.get(key)?.forEach((effect) => effects.add(effect))
+    })
+  }
+
+  effects.forEach((effect) => effect.run())
+}
+
 export class ReactiveEffect {
   active = true
   deps: Set<Set<ReactiveEffect>> = new Set()
@@ -17,14 +84,20 @@ export class ReactiveEffect {
 
     this.cleanup()
 
-    activeEffect = Symbol()
-    effectMap.set(activeEffect, this)
+    // Efeitos podem ser aninhados (ex.: um `:for` que parseia filhos com
+    // bindings próprios). Restaurar o efeito anterior ao final é essencial
+    // para que o efeito externo continue rastreando as dependências lidas
+    // depois da execução do efeito interno.
+    const previousEffect = activeEffect
+    const currentEffect = Symbol()
+    activeEffect = currentEffect
+    effectMap.set(currentEffect, this)
 
     try {
       return this.fn()
     } finally {
-      effectMap.delete(activeEffect)
-      activeEffect = null
+      effectMap.delete(currentEffect)
+      activeEffect = previousEffect
     }
   }
 
@@ -77,6 +150,16 @@ export function track(target: object, key: string | symbol) {
 }
 
 export function trigger(target: object, key: string | symbol) {
+  if (batchDepth > 0) {
+    let keys = pendingTriggers.get(target)
+    if (!keys) {
+      keys = new Set()
+      pendingTriggers.set(target, keys)
+    }
+    keys.add(key)
+    return
+  }
+
   const depsMap = targetMap.get(target)
   if (!depsMap) return
 
@@ -155,6 +238,15 @@ export function reactive<T extends object>(target: T): any {
     get(obj, key, receiver) {
       if (key === '_isReactive') return true
       track(obj, key)
+
+      if (
+        Array.isArray(obj) &&
+        typeof key === 'string' &&
+        ARRAY_MUTATORS.has(key) &&
+        !Object.hasOwn(obj, key)
+      ) {
+        return getArrayMutator(key)
+      }
 
       const res = Reflect.get(obj, key, receiver)
       // deep reactivity

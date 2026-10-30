@@ -18,6 +18,8 @@
 ### A. Sistema de Reatividade
 
 - **Mecanismo:** Proxy-based em conjunto com a classe `ReactiveEffect`. O estado é interceptado para disparar "efeitos" com gerenciamento preciso de dependências, controle de ciclo de vida (`stop`, `cleanup`) e otimizado contra vazamento de memória.
+- **Batching de Mutações de Array:** Métodos mutadores (`push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill`, `copyWithin`) executam múltiplos `set` internos. Os disparos são agrupados e os efeitos rodam uma única vez, após o array atingir o estado final, evitando renderizações intermediárias com chaves duplicadas.
+- **Efeitos Aninhados:** O `activeEffect` é empilhado/restaurado a cada execução, permitindo que um efeito externo continue rastreando dependências lidas depois da execução de efeitos internos (ex.: bindings de filhos criados por um `:for`).
 - **Global State:** Deve ser possível exportar um objeto reativo de um arquivo e importá-lo em múltiplos componentes/contextos, tornando-o um estado compartilhado.
 - **Global Effect:** Deve ser possível criar efeitos globais que reajam a mudanças em qualquer estado compartilhado.
 - **Local State:** Deve ser possível criar estados locais que reajam a mudanças apenas dentro do escopo do componente.

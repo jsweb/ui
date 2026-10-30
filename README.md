@@ -94,7 +94,7 @@ Atualiza classes reativas preservando classes estáticas já presentes no elemen
 </ul>
 ```
 
-Ao atualizar arrays reativos, o motor rastreia os nós pelo `:key` (ou índice por padrão) e reaproveita as instâncias existentes no DOM, evitando reflows desnecessários e mantendo estados de foco/interação.
+Ao atualizar arrays reativos, o motor rastreia os nós pelo `:key` (ou índice por padrão) e reaproveita as instâncias existentes no DOM, evitando reflows desnecessários e mantendo estados de foco/interação. Métodos mutadores (`push`, `pop`, `splice`, `sort`, `reverse`, etc.) são aplicados em lote: os efeitos rodam uma única vez, já com o array no estado final.
 
 #### Referências a Elementos (`ui:ref` / `:ref` e `$refs`)
 

@@ -12,6 +12,11 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 
 - **Diretiva Estática `ui-cloak`**: Marcador de presença que oculta o elemento via CSS (`[ui-cloak] { display: none !important; }`) até que a subárvore seja parseada, evitando FOUC. O atributo é removido automaticamente após o parsing e funciona com `:scope`, `:if` e `:for`. Por ser um marcador estático, não aceita expressão nem shorthand (diferente das diretivas `ui:*`/`:*`).
 
+### Fixed
+
+- **Reconciliação de listas em mutações de array**: Métodos como `splice`, `shift`, `unshift`, `sort` e `reverse` executam vários `set` internos e disparavam efeitos em estados intermediários, nos quais chaves podiam ficar temporariamente duplicadas. Isso deixava nós órfãos/duplicados no DOM. Os mutadores de array agora têm os disparos agrupados e executam os efeitos uma única vez, após o array atingir o estado final. A reconciliação de `:for` também passou a tratar chaves duplicadas transitórias sem sobrescrever nós no `Map`.
+- **Rastreamento em efeitos aninhados**: `ReactiveEffect.run()` definia `activeEffect = null` ao terminar, em vez de restaurar o efeito externo. Com efeitos aninhados (por exemplo, um `:for` cujos filhos possuem bindings próprios), o efeito externo deixava de rastrear dependências lidas após o efeito interno. O contexto de rastreamento agora é restaurado corretamente ao final de cada execução.
+
 ---
 
 ## [1.3.3] - 2026-09-25

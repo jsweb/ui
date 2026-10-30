@@ -203,8 +203,16 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
     }
 
     const newNodes: RenderedNode[] = []
-    const oldNodesByKey = new Map<any, RenderedNode>()
-    renderedNodes.forEach((node) => oldNodesByKey.set(node.key, node))
+
+    // Uma chave pode aparecer em mais de um nó após estados intermediários de
+    // mutações de array. Filas preservam todos os nós e evitam que um deles
+    // seja sobrescrito no Map e fique órfão no DOM.
+    const oldNodesByKey = new Map<any, RenderedNode[]>()
+    renderedNodes.forEach((node) => {
+      const nodes = oldNodesByKey.get(node.key)
+      if (nodes) nodes.push(node)
+      else oldNodesByKey.set(node.key, [node])
+    })
 
     list.forEach((item, index) => {
       let key: any = index
@@ -217,14 +225,19 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
         key = evaluate(keyDirective, tempContext)
       }
 
-      let node = oldNodesByKey.get(key)
+      const candidates = oldNodesByKey.get(key)
+      const node = candidates?.shift()
+
       if (node) {
         // Reuse node
         node.scope[itemName] = item
         node.scope.$index = index
         node.scope.$key = key
         node.scope.$el = node.el
-        oldNodesByKey.delete(key)
+        if (candidates && candidates.length === 0) {
+          oldNodesByKey.delete(key)
+        }
+        newNodes.push(node)
       } else {
         // Create new node
         const clone = el.cloneNode(true) as HTMLElement
@@ -237,16 +250,16 @@ function processFor(el: HTMLElement, expr: string, context: Context) {
         const reactiveScope = reactive(scope)
         const localContext = createContext(reactiveScope, context)
         parseNode(clone, localContext)
-        node = { key, el: clone, scope: reactiveScope }
+        newNodes.push({ key, el: clone, scope: reactiveScope })
       }
-
-      newNodes.push(node)
     })
 
     // Remove un-reused nodes
-    oldNodesByKey.forEach((node) => {
-      node.el.remove()
-      cleanupTree(node.el)
+    oldNodesByKey.forEach((nodes) => {
+      nodes.forEach((node) => {
+        node.el.remove()
+        cleanupTree(node.el)
+      })
     })
 
     // Reorder and insert new DOM nodes

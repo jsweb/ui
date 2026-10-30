@@ -53,10 +53,11 @@ Regras de build/publicação:
 
 ### 4.1 Reatividade (`src/reactivity.ts`)
 
-- `ReactiveEffect` guarda `fn`, `active` e o conjunto `deps`. `run()` limpa dependências antigas, marca um `Symbol` como efeito ativo, executa a função e restaura o estado anterior. `stop()` limpa e desativa.
+- `ReactiveEffect` guarda `fn`, `active` e o conjunto `deps`. `run()` limpa dependências antigas, empilha um novo `activeEffect`, executa a função e **restaura o efeito anterior** (necessário para efeitos aninhados). `stop()` limpa e desativa.
 - O rastreamento usa `activeEffect` (global de módulo), `targetMap` (`WeakMap<object, Map<key, Set<ReactiveEffect>>>`), `effectMap` e `proxyMap` (cache de proxies).
 - `reactive()` faz proxy profundo de objetos/arrays, guarda o cache por alvo e ignora `Map`, `Set`, `WeakMap`, `WeakSet`, `Date`, `RegExp` e nós do DOM. A flag interna `_isReactive` evita re-embrulhar.
 - `set` dispara apenas quando a chave é nova ou o valor realmente muda; em arrays, alterações de índice também disparam `length`.
+- Mutadores de array (`push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill`, `copyWithin`) são interceptados e executam com `batchDepth > 0`: os disparos são coletados em `pendingTriggers` e cada efeito afetado roda **uma vez** no estado final. Não substitua esses métodos por chamadas diretas a `Array.prototype` sem manter o agrupamento.
 - Propriedades computadas são **getters nativos** (`get total() { ... }`). Não existe `computed()`.
 - `watch(source, cb, { immediate })` aceita getter ou objeto (observação profunda via `traverse`) e retorna `stop`.
 - `Scope` fornece `$el`, `$refs` e `$emit` (`protected`, sobrescrevível); `$el` é `declare` e atribuído em tempo de montagem — não o inicialize no construtor.
@@ -67,7 +68,7 @@ Regras de build/publicação:
 - `parseNode` processa apenas elementos, nesta ordem: `:scope` → `:for` (retorna imediatamente após processar) → `:if` → atributos → filhos.
 - `createContext(scope, parent)` cria um `Proxy` que resolve primeiro no escopo local e depois no pai, permitindo sombreamento e herança. Atribuições a propriedades existentes no pai são gravadas no pai.
 - `:scope` avalia a expressão; se o resultado for falsy, o elemento e seus filhos **não são parseados** (`processScope` retorna `undefined`).
-- Listas (`:for`): o elemento original é substituído por um comentário-âncora com UUID; cada item é clonado e parseado com um contexto próprio. Nós são reciclados por `:key` (ou índice, se ausente); itens removidos passam por `cleanupTree`, que executa os `stop()` registrados em `_effects`.
+- Listas (`:for`): o elemento original é substituído por um comentário-âncora com UUID; cada item é clonado e parseado com um contexto próprio. Nós são reciclados por `:key` (ou índice, se ausente); itens removidos passam por `cleanupTree`, que executa os `stop()` registrados em `_effects`. A reconciliação mantém uma **fila de nós por chave** (`Map<any, RenderedNode[]>`) para não perder nós quando uma chave aparece duplicada em estados transitórios.
 - `:if`: usa comentário-âncora, insere/remove o elemento conforme a expressão. **Não** chama `cleanupTree` ao esconder; os efeitos só são encerrados quando um ancestral é limpo (ex.: remoção em lista). Handlers de evento têm guarda `el.isConnected`.
 - Toda diretiva processada remove seus atributos do DOM. Qualquer atributo desconhecido com prefixo `ui:` ou `:` é tratado como bind de atributo nativo.
 - `ui-cloak` é detectado no início de `parseNode` e removido **depois** do parsing dos filhos, para evitar exibir conteúdo não inicializado. Ele depende de CSS fornecido pela aplicação (`[ui-cloak] { display: none !important; }`) e não é tratado como bind de atributo.

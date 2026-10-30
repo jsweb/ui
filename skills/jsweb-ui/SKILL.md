@@ -60,7 +60,7 @@ Available via unpkg or jsDelivr. Exposes the global object `window.jsweb.ui`:
 ## 2. Core Architecture & Mental Model
 
 1. **No Virtual DOM**: Changes to reactive properties mutate the real DOM directly using targeted granular effects.
-2. **Deep Proxy Reactivity**: State created with `reactive()` wraps objects and arrays into reactive Proxies. Mutating nested properties or calling array methods (`push`, `pop`, `splice`, `shift`, etc.) triggers targeted DOM re-renders.
+2. **Deep Proxy Reactivity**: State created with `reactive()` wraps objects and arrays into reactive Proxies. Mutating nested properties or calling array methods (`push`, `pop`, `splice`, `shift`, etc.) triggers targeted DOM re-renders. Array mutators are batched: dependent effects run once, after the array reaches its final state, so intermediate duplicate keys never reach the DOM.
 3. **Template Directives Cleanup**: Directive attributes (`:text`, `:bind`, `:if`, `:for`, `:class`, etc.) are evaluated and immediately removed from DOM elements after mounting, keeping the HTML clean.
 4. **Context Hierarchy**: Scopes inherit variables from outer scopes or parent contexts. Expressions are safely evaluated in the context scope with dynamic evaluation (`with(this)`).
 5. **Memory Safe & Auto-Cleanup**: When elements are removed (via `:if` or `:for`), all associated event listeners and reactive effects are automatically cleaned up.
