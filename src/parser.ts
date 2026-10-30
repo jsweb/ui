@@ -3,6 +3,13 @@ import { evaluate, evaluateEvent } from './evaluator'
 
 export type Context = Record<string, any>
 
+/**
+ * Marcador estático usado apenas para ocultar o elemento via CSS até que a
+ * subárvore seja parseada. Diferente das demais diretivas, usa hífen em vez de
+ * dois-pontos e não possui shorthand nem expressão.
+ */
+const CLOAK_ATTRIBUTE = 'ui-cloak'
+
 interface BoundNode extends Node {
   _effects?: Array<() => void>
 }
@@ -48,6 +55,7 @@ export function parseNode(node: Node, context: Context) {
   if (node.nodeType !== Node.ELEMENT_NODE) return
 
   const el = node as HTMLElement
+  const isCloaked = el.hasAttribute(CLOAK_ATTRIBUTE)
   const scope = processScope(el, context)
   if (!scope) return
 
@@ -70,6 +78,12 @@ export function parseNode(node: Node, context: Context) {
 
   const children = Array.from(el.childNodes)
   for (const child of children) parseNode(child, scope)
+
+  // Remove o marcador somente depois de parsear toda a subárvore, evitando
+  // que o elemento seja exibido antes de suas diretivas serem aplicadas.
+  if (isCloaked) {
+    el.removeAttribute(CLOAK_ATTRIBUTE)
+  }
 }
 
 export function createScope<T extends object = Context>(

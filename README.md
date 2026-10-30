@@ -30,7 +30,7 @@ npm i @jsweb/ui
 
 ## Diretivas Disponíveis
 
-O framework utiliza um sistema de atributos customizados para declaratividade no HTML, suportando tanto o prefixo completo (`ui:`, `ui@`) quanto a sintaxe simplificada (`:`, `@`).
+O framework utiliza um sistema de atributos customizados para declaratividade no HTML, suportando tanto o prefixo completo (`ui:`, `ui@`) quanto a sintaxe simplificada (`:`, `@`). A exceção é o marcador estático `ui-cloak`, que usa hífen e não possui shorthand.
 
 | Diretiva     | Atalho     | Descrição                                                                         | Exemplo                                    |
 | :----------- | :--------- | :-------------------------------------------------------------------------------- | :----------------------------------------- |
@@ -43,6 +43,7 @@ O framework utiliza um sistema de atributos customizados para declaratividade no
 | `ui:class`   | `:class`   | Bind reativo para classes CSS (suporta String, Array ou Objeto booleano).         | `<div :class="{ active: isActive }">`      |
 | `ui:style`   | `:style`   | Bind reativo para estilos inline (recebe objeto chave/valor de propriedades CSS). | `<div :style="{ color: textColor }">`      |
 | `ui:ref`     | `:ref`     | Referencia elementos HTML indexados em um Map acessível via `$refs`.              | `<input :ref="myInput">`                   |
+| `ui-cloak`   | —          | Oculta o elemento via CSS até o parsing e remove o atributo em seguida.           | `<div ui-cloak>`                           |
 | `ui:[attr]`  | `:[attr]`  | Bind de atributos HTML nativos (remove se falsy, ativa se booleano `true`).       | `<button :disabled="count > 10">`          |
 | `ui@[event]` | `@[event]` | Escuta eventos DOM nativos ou customizados (com suporte a modificadores).         | `<button @click.prevent="save">`           |
 
@@ -132,6 +133,18 @@ O atributo `ui:ref` ou `:ref` indexa o elemento diretamente em um objeto `Map` a
 
 3. **Limpeza Automática**:
    Quando um elemento referenciado sai do DOM (seja por remoção do item em lista ou por `ui:if`), ele é desregistrado automaticamente do `Map`, evitando vazamentos de memória e referências a nós órfãos.
+
+#### Ocultação Inicial (`ui-cloak`)
+
+Use `ui-cloak` para evitar o flash de conteúdo não processado (FOUC) antes da montagem. O framework **não injeta CSS**: adicione a regra ao seu stylesheet:
+
+```css
+[ui-cloak] {
+  display: none !important;
+}
+```
+
+`ui-cloak` é um marcador estático: funciona apenas pela presença do atributo, não recebe expressão e **não possui shorthand**. O atributo é removido automaticamente após o parsing da subárvore do elemento, de modo que o conteúdo apareça já inicializado. Também funciona com `:scope`, `:if` e `:for` (cada item clonado é desocultado após o próprio parsing).
 
 ## Exemplo de Uso
 

@@ -1,6 +1,6 @@
 ---
 name: jsweb-ui
-description: Comprehensive guide and operational instructions for building reactive user interfaces with the @jsweb/ui micro-framework. Use this skill whenever creating, modifying, or refactoring web applications that use @jsweb/ui, or when building fine-grained reactive HTML components with custom directives (ui:*, :*, ui@*, @*), two-way data binding, conditional rendering, keyed list loops, DOM refs, and shared reactive stores without a Virtual DOM.
+description: Comprehensive guide and operational instructions for building reactive user interfaces with the @jsweb/ui micro-framework. Use this skill whenever creating, modifying, or refactoring web applications that use @jsweb/ui, or when building fine-grained reactive HTML components with custom directives (ui:*, :*, ui@*, @*, ui-cloak), two-way data binding, conditional rendering, keyed list loops, DOM refs, and shared reactive stores without a Virtual DOM.
 ---
 
 # @jsweb/ui Skill Guide
@@ -219,21 +219,22 @@ createScope('#app', appState)
 
 ## 4. Template Directives & Attributes
 
-All directives support both the full syntax (`ui:*`, `ui@*`) and the concise shorthand (`:*`, `@*`). The shorthand is recommended for concise templates.
+All expression directives support both the full syntax (`ui:*`, `ui@*`) and the concise shorthand (`:*`, `@*`). The shorthand is recommended for concise templates. The only exception is `ui-cloak`, a static marker with no expression or shorthand.
 
-| Directive    | Shorthand  | Purpose                                                | Example                                    |
-| :----------- | :--------- | :----------------------------------------------------- | :----------------------------------------- |
-| `ui:scope`   | `:scope`   | Defines local state scope for element and descendants  | `<div :scope="{ open: false }">`           |
-| `ui:text`    | `:text`    | Sets reactive `textContent`                            | `<span :text="username"></span>`           |
-| `ui:bind`    | `:bind`    | Two-way data binding for form inputs                   | `<input type="text" :bind="query" />`      |
-| `ui:if`      | `:if`      | Conditionally mounts/unmounts element in DOM           | `<div :if="isLoggedIn">Welcome</div>`      |
-| `ui:for`     | `:for`     | Repeats element over an array (`in` or `of`)           | `<li :for="item of items">`                |
-| `ui:key`     | `:key`     | Reconciliation key for list recycling                  | `<li :for="user of users" :key="user.id">` |
-| `ui:class`   | `:class`   | Reactive CSS classes (Object, Array, or String)        | `<div :class="{ active: isActive }">`      |
-| `ui:style`   | `:style`   | Reactive inline styles (Object key-value)              | `<div :style="{ color: themeColor }">`     |
-| `ui:ref`     | `:ref`     | Registers DOM element into `$refs` `Map`               | `<input :ref="searchField" />`             |
-| `ui:[attr]`  | `:[attr]`  | Dynamic attribute binding (`:disabled`, `:href`, etc.) | `<button :disabled="isSubmitting">`        |
-| `ui@[event]` | `@[event]` | Event listener with modifier support                   | `<button @click.prevent="submit">`         |
+| Directive    | Shorthand  | Purpose                                                        | Example                                    |
+| :----------- | :--------- | :------------------------------------------------------------- | :----------------------------------------- |
+| `ui:scope`   | `:scope`   | Defines local state scope for element and descendants          | `<div :scope="{ open: false }">`           |
+| `ui:text`    | `:text`    | Sets reactive `textContent`                                    | `<span :text="username"></span>`           |
+| `ui:bind`    | `:bind`    | Two-way data binding for form inputs                           | `<input type="text" :bind="query" />`      |
+| `ui:if`      | `:if`      | Conditionally mounts/unmounts element in DOM                   | `<div :if="isLoggedIn">Welcome</div>`      |
+| `ui:for`     | `:for`     | Repeats element over an array (`in` or `of`)                   | `<li :for="item of items">`                |
+| `ui:key`     | `:key`     | Reconciliation key for list recycling                          | `<li :for="user of users" :key="user.id">` |
+| `ui:class`   | `:class`   | Reactive CSS classes (Object, Array, or String)                | `<div :class="{ active: isActive }">`      |
+| `ui:style`   | `:style`   | Reactive inline styles (Object key-value)                      | `<div :style="{ color: themeColor }">`     |
+| `ui:ref`     | `:ref`     | Registers DOM element into `$refs` `Map`                       | `<input :ref="searchField" />`             |
+| `ui-cloak`   | —          | Hides element via CSS until parsed, then removes the attribute | `<div ui-cloak>`                           |
+| `ui:[attr]`  | `:[attr]`  | Dynamic attribute binding (`:disabled`, `:href`, etc.)         | `<button :disabled="isSubmitting">`        |
+| `ui@[event]` | `@[event]` | Event listener with modifier support                           | `<button @click.prevent="submit">`         |
 
 ---
 
@@ -369,7 +370,27 @@ Registers the DOM element into the context's `$refs` `Map`.
   ```
 - **Automatic Lifecycle Cleanup**: When an element leaves the DOM (via `:if` or `:for`), its entry is removed from the `$refs` map to prevent memory leaks.
 
-#### 9. Dynamic Attributes (`:[attr]`)
+#### 9. `ui-cloak`
+
+Hides an element until its subtree has been parsed, preventing a flash of unprocessed content (FOUC). The framework does **not** inject CSS; add this rule to the application stylesheet:
+
+```css
+[ui-cloak] {
+  display: none !important;
+}
+```
+
+- `ui-cloak` is a static marker: it works by attribute presence, takes no expression, and has **no shorthand**.
+- The attribute is removed automatically after the element's subtree is parsed, so the content appears already initialized.
+- It composes with `:scope`, `:if`, and `:for`; each cloned list item is uncloaked after its own parsing.
+
+```html
+<div ui-cloak :scope="{ ready: true }">
+  <p :text="ready ? 'Visible after parsing' : 'Hidden'"></p>
+</div>
+```
+
+#### 10. Dynamic Attributes (`:[attr]`)
 
 Binds any HTML attribute dynamically:
 
@@ -607,3 +628,4 @@ When generating, editing, or diagnosing `@jsweb/ui` code, adhere to these rules:
 6. **Use `$refs.get('key')`**: `$refs` is a JavaScript `Map`. Access references using `$refs.get('name')`, not `$refs.name`. In keyed `:for` loops, access nested elements with `$refs.get('name').get(key)`.
 7. **Two-Way Binding on Inputs**: Always use `:bind="prop"`. Avoid manually pairing `:value="prop"` and `@input="prop = $event.target.value"` unless custom debouncing or data conversion is needed.
 8. **Scope Merging**: When calling `createScope(selector, state)`, the properties of `state` become directly accessible in that DOM subtree. If `:scope="{ ... }"` is also defined on the HTML element, the inline scope inherits and shadows properties from the parent state.
+9. **Use `ui-cloak` for FOUC prevention**: Add `[ui-cloak] { display: none !important; }` to the stylesheet and the `ui-cloak` attribute to the element. Do not use `:cloak` or invent a value/expression: `ui-cloak` is presence-based, has no shorthand, and is removed automatically after parsing.

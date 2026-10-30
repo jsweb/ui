@@ -16,6 +16,9 @@
         box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
         transform: scale(1.02);
       }
+      [ui-cloak] {
+        display: none !important;
+      }
     </style>
     <script type="module">
       import { createScope, reactive } from './src/index.ts'
@@ -94,6 +97,20 @@
   <body>
     <div :scope="scope">
       <h1>JS Web UI</h1>
+      <div
+        ui-cloak
+        :scope="{
+          cloakStatus: 'ui-cloak removido: conteúdo liberado após o parsing.',
+        }"
+        style="
+          padding: 8px 12px;
+          border: 1px solid #42b883;
+          border-radius: 6px;
+          margin-bottom: 12px;
+        "
+      >
+        <span :text="cloakStatus"></span>
+      </div>
       <p>Contador: <span :text="count"></span></p>
       <button :text="inc" @click="increment">+</button>
       <button :text="dec" @click="decrement">-</button>

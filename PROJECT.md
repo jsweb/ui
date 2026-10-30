@@ -45,19 +45,22 @@
 
 ## 4. Sintaxe e Diretivas
 
-| Diretiva     | Atalho     | Descrição                                                                            | Exemplo                                    |
-| :----------- | :--------- | :----------------------------------------------------------------------------------- | :----------------------------------------- |
-| `ui:scope`   | `:scope`   | Define o objeto de estado/contexto para o elemento e seus filhos.                    | `<div :scope="{ count: 0 }">`              |
-| `ui:text`    | `:text`    | Sincroniza o `textContent` com uma variável ou expressão.                            | `<span :text="count"></span>`              |
-| `ui:bind`    | `:bind`    | Two-way data binding para inputs, checkboxes, radios, selects e textareas.           | `<input :bind="name">`                     |
-| `ui:if`      | `:if`      | Adiciona/Remove o elemento do DOM (via Comment Node placeholder).                    | `<div :if="count > 0">`                    |
-| `ui:for`     | `:for`     | Renderiza uma lista de elementos a partir de um array (`in` ou `of`).                | `<li :for="item of items">`                |
-| `ui:key`     | `:key`     | Chave de reconciliação para reaproveitamento e reciclagem de nós DOM em listas.      | `<li :for="item of items" :key="item.id">` |
-| `ui:class`   | `:class`   | Bind dinâmico para classes CSS (objeto booleano, array ou string).                   | `<div :class="{ active: isActive }">`      |
-| `ui:style`   | `:style`   | Bind dinâmico para estilos inline (objeto chave/valor de estilos CSS).               | `<div :style="{ color: textColor }">`      |
-| `ui:ref`     | `:ref`     | Indexa elementos HTML em um Map acessível via `$refs` (suporta chaves de lista).     | `<input :ref="myInput">`                   |
-| `ui:[attr]`  | `:[attr]`  | Bind de atributos HTML nativos com suporte a valores booleanos (ex: disabled, href). | `<button :disabled="count > 10">`          |
-| `ui@[event]` | `@[event]` | Event listeners com suporte a `$event` e modificadores encadeados.                   | `<button @click.prevent="save">`           |
+| Diretiva     | Atalho     | Descrição                                                                              | Exemplo                                    |
+| :----------- | :--------- | :------------------------------------------------------------------------------------- | :----------------------------------------- |
+| `ui:scope`   | `:scope`   | Define o objeto de estado/contexto para o elemento e seus filhos.                      | `<div :scope="{ count: 0 }">`              |
+| `ui:text`    | `:text`    | Sincroniza o `textContent` com uma variável ou expressão.                              | `<span :text="count"></span>`              |
+| `ui:bind`    | `:bind`    | Two-way data binding para inputs, checkboxes, radios, selects e textareas.             | `<input :bind="name">`                     |
+| `ui:if`      | `:if`      | Adiciona/Remove o elemento do DOM (via Comment Node placeholder).                      | `<div :if="count > 0">`                    |
+| `ui:for`     | `:for`     | Renderiza uma lista de elementos a partir de um array (`in` ou `of`).                  | `<li :for="item of items">`                |
+| `ui:key`     | `:key`     | Chave de reconciliação para reaproveitamento e reciclagem de nós DOM em listas.        | `<li :for="item of items" :key="item.id">` |
+| `ui:class`   | `:class`   | Bind dinâmico para classes CSS (objeto booleano, array ou string).                     | `<div :class="{ active: isActive }">`      |
+| `ui:style`   | `:style`   | Bind dinâmico para estilos inline (objeto chave/valor de estilos CSS).                 | `<div :style="{ color: textColor }">`      |
+| `ui:ref`     | `:ref`     | Indexa elementos HTML em um Map acessível via `$refs` (suporta chaves de lista).       | `<input :ref="myInput">`                   |
+| `ui-cloak`   | —          | Marcador estático que oculta o elemento via CSS até o parsing e é removido em seguida. | `<div ui-cloak>`                           |
+| `ui:[attr]`  | `:[attr]`  | Bind de atributos HTML nativos com suporte a valores booleanos (ex: disabled, href).   | `<button :disabled="count > 10">`          |
+| `ui@[event]` | `@[event]` | Event listeners com suporte a `$event` e modificadores encadeados.                     | `<button @click.prevent="save">`           |
+
+> `ui-cloak` é a exceção intencional ao padrão de nomenclatura: é um marcador estático (presença do atributo), não uma expressão, e por isso usa hífen em vez de dois-pontos e não possui shorthand. Requer a regra CSS `[ui-cloak] { display: none !important; }` fornecida pela aplicação; o atributo é removido após o parsing da subárvore.
 
 ### Modificadores de Eventos
 

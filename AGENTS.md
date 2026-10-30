@@ -70,6 +70,7 @@ Regras de build/publicação:
 - Listas (`:for`): o elemento original é substituído por um comentário-âncora com UUID; cada item é clonado e parseado com um contexto próprio. Nós são reciclados por `:key` (ou índice, se ausente); itens removidos passam por `cleanupTree`, que executa os `stop()` registrados em `_effects`.
 - `:if`: usa comentário-âncora, insere/remove o elemento conforme a expressão. **Não** chama `cleanupTree` ao esconder; os efeitos só são encerrados quando um ancestral é limpo (ex.: remoção em lista). Handlers de evento têm guarda `el.isConnected`.
 - Toda diretiva processada remove seus atributos do DOM. Qualquer atributo desconhecido com prefixo `ui:` ou `:` é tratado como bind de atributo nativo.
+- `ui-cloak` é detectado no início de `parseNode` e removido **depois** do parsing dos filhos, para evitar exibir conteúdo não inicializado. Ele depende de CSS fornecido pela aplicação (`[ui-cloak] { display: none !important; }`) e não é tratado como bind de atributo.
 - `bindEffect(node, fn)` registra `stop` em `node._effects`; use-o sempre que criar efeitos para garantir cleanup.
 
 ### 4.3 Avaliador (`src/evaluator.ts`)
@@ -85,7 +86,7 @@ Exporta apenas `reactive`, `watch`, `createScope`, `Scope`, `ScopeContext` e `Co
 
 ## 5. Diretivas, modificadores e helpers
 
-Toda diretiva aceita forma longa (`ui:*`, `ui@*`) e shorthand (`:*`, `@*`). Ao criar ou alterar uma diretiva, suporte **as duas formas**.
+Toda diretiva de expressão aceita forma longa (`ui:*`, `ui@*`) e shorthand (`:*`, `@*`). Ao criar ou alterar uma diretiva desse tipo, suporte **as duas formas**. A exceção é `ui-cloak`: marcador estático baseado na presença do atributo, sem expressão e sem shorthand (usa hífen para manter o seletor CSS `[ui-cloak]` simples).
 
 | Diretiva     | Atalho     | Função                                                              |
 | :----------- | :--------- | :------------------------------------------------------------------ |
@@ -98,6 +99,7 @@ Toda diretiva aceita forma longa (`ui:*`, `ui@*`) e shorthand (`:*`, `@*`). Ao c
 | `ui:class`   | `:class`   | Classes por string, array ou objeto booleano.                       |
 | `ui:style`   | `:style`   | Estilos inline por objeto, com remoção de chaves antigas.           |
 | `ui:ref`     | `:ref`     | Registra o elemento em `$refs` (Map).                               |
+| `ui-cloak`   | —          | Oculta via CSS até o parsing; removido após a subárvore.            |
 | `ui:[attr]`  | `:[attr]`  | Bind de atributo nativo (falsy remove, `true` vira atributo vazio). |
 | `ui@[event]` | `@[event]` | Listener de evento com modificadores.                               |
 
@@ -133,7 +135,7 @@ Helpers no contexto: `$refs` (`Map`; em listas com `:key`, `$refs.get(nome)` ret
 ## 8. Checklist para alterar ou criar diretiva
 
 1. Implemente em `src/parser.ts`, integrando ao fluxo correto (`parseNode` para diretivas estruturais; `processAttributes` para as demais).
-2. Trate **sempre** as duas grafias (`ui:x` e `:x`, ou `ui@x` e `@x`).
+2. Trate as duas grafias (`ui:x` e `:x`, ou `ui@x` e `@x`) quando aplicável; `ui-cloak` é a exceção intencional, sem shorthand.
 3. Garanta a ordem de detecção antes do fallback genérico de bind de atributo.
 4. Crie efeitos com `bindEffect` e registre cleanup de listeners/refs.
 5. Remova os atributos do DOM após a inicialização.
@@ -163,6 +165,7 @@ Há um workflow detalhado em `.agents/skills/update-documentation/SKILL.md`; use
 - `:for` substitui o elemento original por um clone por item; atributos no próprio elemento do loop são processados no clone.
 - `processAttributes` trata qualquer `ui:`/`:` desconhecido como bind de atributo — uma nova diretiva precisa ser reconhecida antes desse fallback.
 - `.outside` adiciona listener no `document`; sem cleanup (ou guarda `isConnected`) ele continua vivo após o nó sair do DOM.
+- `ui-cloak` só é removido se a subárvore for parseada; com `:scope` avaliando falsy, o elemento permanece oculto (comportamento seguro, pois o conteúdo não foi processado).
 - `crypto.randomUUID()` é usado como âncora de `:if`/`:for`; requer ambiente moderno/secure context.
 - `new Function` + `with` é intencional (sandbox de expressões) e incompatível com CSP restritiva.
 - `Scope.$refs` é `protected` e `Scope.$el` é apenas `declare`; a atribuição real acontece no parser.
