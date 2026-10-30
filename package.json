@@ -42,9 +42,13 @@
     "test": "echo 'test'",
     "prepublishOnly": "node -e \"console.error('❌ Erro: Nao publique pela raiz! Use: npm run dist'); process.exit(1)\"",
     "dist": "npm run build && npm publish ./dist",
-    "push": "git push && git push --tags && npm run dist"
+    "push": "git push && git push --tags && npm run dist",
+    "index:repomix": "repomix --style markdown",
+    "index:codegraph": "codegraph index",
+    "index": "run-s index:*"
   },
   "devDependencies": {
+    "npm-run-all2": "^9.0.4",
     "prettier": "^3.8.3",
     "terser": "^5.46.2",
     "typescript": "^6.0.3",
