@@ -303,3 +303,15 @@ Observa alterações reativas e executa uma função de callback quando o valor 
 - **`callback`**: `(newValue: T, oldValue: T | undefined) => void`.
 - **`options`**: `{ immediate?: boolean }` para acionar a callback imediatamente na primeira execução.
 - **Retorno**: Função de cancelamento `stop()` que encerra a observação e limpa dependências.
+
+## Desenvolvimento
+
+```bash
+npm install      # instala apenas dependências de desenvolvimento
+npm run dev      # demo manual em index.html
+npm test         # suíte Vitest + jsdom (uma execução)
+npm run test:watch
+npm run build    # type-check + build ESM/UMD + metadados de publish
+```
+
+A suíte cobre reatividade, diretivas, bindings, listas, eventos, refs e `ui-cloak`. Testes de browser real (FOUC, foco e distribuição UMD) ficam para uma fase posterior com Playwright.

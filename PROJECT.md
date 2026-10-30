@@ -110,3 +110,11 @@ export default defineConfig({
   plugins: [dts()], // Gera os tipos .d.ts automaticamente
 })
 ```
+
+---
+
+### Testes (Vitest + jsdom)
+
+- **Unidade e Integração:** Suíte rápida com Vitest e jsdom em `tests/`, cobrindo reatividade, diretivas, `:bind`, reconciliação de listas, eventos/modificadores, `$refs` e `ui-cloak`.
+- **Zero Runtime Overhead:** Vitest e jsdom são apenas `devDependencies`.
+- **Browser Real (Fase 2):** Playwright reservado para comportamentos reais do navegador (FOUC do `ui-cloak`, foco de inputs e UMD).

@@ -8,6 +8,10 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- **Suíte de testes automatizados (Vitest + jsdom)**: Cobertura de regressão para reatividade (proxy profundo, `watch`, batching de mutadores de array e efeitos aninhados), diretivas, `:bind`, listas/`:key`, eventos e modificadores, `$refs` e `ui-cloak`. `npm test` agora executa `vitest run`; `npm run test:watch` roda em modo watch e `npm run format:check` verifica a formatação sem alterar arquivos. Vitest e jsdom entram apenas como `devDependencies`; o runtime permanece sem dependências.
+
 ---
 
 ## [1.3.4] - 2026-10-29

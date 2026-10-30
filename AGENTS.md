@@ -13,17 +13,19 @@ Guia para agentes de IA que trabalham neste repositório. Leia antes de alterar 
 
 ## 2. Comandos
 
-| Comando           | O que faz                                                                                        |
-| :---------------- | :----------------------------------------------------------------------------------------------- |
-| `npm install`     | Instala dependências apenas de desenvolvimento.                                                  |
-| `npm run dev`     | Sobe o Vite com o demo `index.html` (teste manual principal do framework).                       |
-| `npm run build`   | Executa `tsc` (type-check com `noEmit`), `vite build` e `publish.js` (gera `dist/` + metadados). |
-| `npm run preview` | Serve o build de produção.                                                                       |
-| `npm run format`  | Aplica Prettier em todo o repositório.                                                           |
-| `npm test`        | **Placeholder** (`echo 'test'`). Não existe suíte de testes automatizados no projeto.            |
-| `npm run index`   | Gera os índices de contexto: `repomix` (`repomix-output.md`) e `codegraph` (`.codegraph/`).      |
-| `npm run dist`    | `npm run build && npm publish ./dist` — somente mantenedores.                                    |
-| `npm run push`    | Push de commits/tags + publicação — somente mantenedores.                                        |
+| Comando                | O que faz                                                                                        |
+| :--------------------- | :----------------------------------------------------------------------------------------------- |
+| `npm install`          | Instala dependências apenas de desenvolvimento.                                                  |
+| `npm run dev`          | Sobe o Vite com o demo `index.html` (teste manual principal do framework).                       |
+| `npm run build`        | Executa `tsc` (type-check com `noEmit`), `vite build` e `publish.js` (gera `dist/` + metadados). |
+| `npm run preview`      | Serve o build de produção.                                                                       |
+| `npm run format`       | Aplica Prettier em todo o repositório.                                                           |
+| `npm run format:check` | Verifica a formatação sem alterar arquivos (útil para CI).                                       |
+| `npm test`             | Executa a suíte automatizada uma vez (`vitest run`, ambiente jsdom).                             |
+| `npm run test:watch`   | Executa a suíte em modo watch durante o desenvolvimento.                                         |
+| `npm run index`        | Gera os índices de contexto: `repomix` (`repomix-output.md`) e `codegraph` (`.codegraph/`).      |
+| `npm run dist`         | `npm run build && npm publish ./dist` — somente mantenedores.                                    |
+| `npm run push`         | Push de commits/tags + publicação — somente mantenedores.                                        |
 
 Regras de build/publicação:
 
@@ -41,6 +43,9 @@ Regras de build/publicação:
 | `src/index.ts`                                 | Única superfície pública de exports; também registra `window.jsweb.ui`.                                                          |
 | `index.html`                                   | Demo/manual de fumaça: usa `src/index.ts` via Vite e exercita todas as diretivas.                                                |
 | `vite.config.ts`                               | Build de biblioteca (ES + UMD), sourcemap, Terser e geração de `.d.ts` (`vite-plugin-dts`).                                      |
+| `vitest.config.ts`                             | Configuração da suíte: ambiente `jsdom`, `tests/setup.ts` e padrão `tests/**/*.test.ts`.                                         |
+| `tests/`                                       | Suíte de regressão (Vitest): reatividade, diretivas, bindings, listas, eventos, refs e `ui-cloak`.                               |
+| `tests/helpers/mount.ts`                       | Helper de montagem com `createScope` e cleanup automático via `cleanupTree` entre testes.                                        |
 | `tsconfig.json`                                | TypeScript estrito (`strict`, `noUnusedLocals`, `noUnusedParameters`), `noEmit`, target/module `ESNext`.                         |
 | `publish.js`                                   | Empacotamento mínimo para publicação em `dist/`.                                                                                 |
 | `README.md`                                    | Documentação pública (português): instalação, diretivas, exemplos e API.                                                         |
@@ -85,6 +90,16 @@ Regras de build/publicação:
 
 Exporta apenas `reactive`, `watch`, `createScope`, `Scope`, `ScopeContext` e `Context`. Mudanças de assinatura ou remoções são potencialmente **breaking changes**: exigem atualização de documentação, `CHANGELOG.md` e, conforme o caso, major em SemVer.
 
+### 4.5 Testes (`tests/`)
+
+- Stack: **Vitest + jsdom**, ambos em `devDependencies`. O runtime continua sem dependências.
+- Os testes importam `src/` diretamente (sem `dist/`), então não exigem `npm run build` antes.
+- `tests/setup.ts` garante `crypto.randomUUID` no jsdom e executa `cleanupMounts()` no `afterEach`.
+- `tests/helpers/mount.ts` monta o HTML em um host isolado, chama `createScope` e retorna `dispose()`; o `dispose` executa `cleanupTree` e remove o host. Use estado novo por teste — `createScope` muta o objeto recebido (`$el`, `$emit`, `$refs`).
+- Cobertura atual: reatividade (proxy, watch, batching de arrays, efeitos aninhados), diretivas, `:bind`, listas/`:key`, eventos/modificadores, `$refs` e `ui-cloak`.
+- `tsconfig.json` inclui apenas `src/` e `vite.config.ts`; os testes são verificados pelo Vitest, não pelo `tsc` do build.
+- Playwright não faz parte desta fase. Use-o apenas para comportamentos que dependem de browser real (FOUC do `ui-cloak`, foco, `.outside` e distribuição UMD) quando a Fase 2 for iniciada.
+
 ## 5. Diretivas, modificadores e helpers
 
 Toda diretiva de expressão aceita forma longa (`ui:*`, `ui@*`) e shorthand (`:*`, `@*`). Ao criar ou alterar uma diretiva desse tipo, suporte **as duas formas**. A exceção é `ui-cloak`: marcador estático baseado na presença do atributo, sem expressão e sem shorthand (usa hífen para manter o seletor CSS `[ui-cloak]` simples).
@@ -121,7 +136,7 @@ Helpers no contexto: `$refs` (`Map`; em listas com `:key`, `$refs.get(nome)` ret
 9. **Não edite artefatos gerados** (`dist/`, `.codegraph/`, `repomix-output.md`, `package-lock.json` manualmente).
 10. **Não publique pela raiz.** Use `npm run dist` apenas quando for solicitado.
 11. **Preserve a compatibilidade standalone:** nada de APIs exclusivas de Node em `src/`, e proteja acessos a `window`/`document` com guards quando executados na importação.
-12. **Não presuma testes automatizados.** `npm test` é placeholder; valide com `npm run build` e manualmente via `npm run dev` + `index.html`.
+12. **Valide com testes automatizados.** Rode `npm test` para a suíte Vitest/jsdom e `npm run build` para type-check + build. Use `npm run dev` + `index.html` para conferir visualmente casos que o jsdom não cobre (FOUC, foco, CSS).
 
 ## 7. Convenções de código
 
@@ -142,7 +157,7 @@ Helpers no contexto: `$refs` (`Map`; em listas com `:key`, `$refs.get(nome)` ret
 5. Remova os atributos do DOM após a inicialização.
 6. Preserve herança/sombreamento de contexto e o comportamento de `$index`/`$key` em listas.
 7. Atualize a documentação: `README.md`, `PROJECT.md`, `skills/jsweb-ui/SKILL.md` e `CHANGELOG.md`.
-8. Rode `npm run format` e `npm run build`.
+8. Rode `npm run format`, `npm test` e `npm run build`.
 9. Valide manualmente o caso de uso em `index.html` com `npm run dev` (incluindo remoção de itens/condicionais para checar vazamentos).
 
 ## 9. Sincronização de documentação
